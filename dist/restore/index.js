@@ -4727,12 +4727,13 @@ Object.defineProperty(exports, "__esModule", { value: true });
 "use strict";
 
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.RefKey = exports.Restore = exports.Events = exports.BuildSystems = exports.State = exports.Outputs = exports.Inputs = exports.RestoreKeyPath = exports.DefaultGitHistoryDepth = exports.CachePaths = exports.M2Path = exports.BuildFilesSearch = exports.CacheClearSearchString = exports.MaxCacheKeys = void 0;
+exports.RefKey = exports.Restore = exports.Events = exports.BuildSystems = exports.State = exports.Outputs = exports.Inputs = exports.RestoreKeyPath = exports.DefaultGitHistoryDepth = exports.CachePaths = exports.M2RepositoryPath = exports.M2Path = exports.BuildFilesSearch = exports.CacheClearSearchString = exports.MaxCacheKeys = void 0;
 exports.MaxCacheKeys = 10;
 exports.CacheClearSearchString = "[cache clear]";
 exports.BuildFilesSearch = ["**/pom.xml"];
 exports.M2Path = "~/.m2";
-exports.CachePaths = [exports.M2Path + "/repository"];
+exports.M2RepositoryPath = "~/.m2/repository";
+exports.CachePaths = [exports.M2RepositoryPath];
 exports.DefaultGitHistoryDepth = 100;
 exports.RestoreKeyPath = exports.M2Path + "/cache-restore-key-success";
 var Inputs;
@@ -37361,7 +37362,7 @@ function toAbsolutePath(path) {
 }
 exports.toAbsolutePath = toAbsolutePath;
 function ensureMavenDirectoryExists() {
-    const mavenDirectory = toAbsolutePath(constants_1.M2Path);
+    const mavenDirectory = toAbsolutePath(constants_1.M2RepositoryPath);
     if (!fs.existsSync(mavenDirectory)) {
         fs.mkdirSync(mavenDirectory, { recursive: true });
     }
@@ -51274,9 +51275,8 @@ function prepareCleanup() {
         console.log("Prepare for cleanup of Maven cache..");
         const homedir = os.homedir();
         const mavenDirectory = utils.ensureMavenDirectoryExists();
-        const path = mavenDirectory + "/repository/agent-1.0.0.jar";
+        const path = mavenDirectory + "/agent-1.0.0.jar";
         if (!fs.existsSync(path)) {
-            utils.ensureMavenDirectoryExists();
             yield downloadCacheHttpClient('https://repo1.maven.org/maven2/com/github/skjolber/maven-pom-recorder/agent/1.0.0/agent-1.0.0.jar', path);
         }
         if (fs.existsSync(path)) {
