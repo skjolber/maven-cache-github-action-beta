@@ -46622,14 +46622,15 @@ class GitOutput {
             .filter(x => x !== "");
     }
 }
-function getBranch() {
+function getCommitLogTarget() {
     return __awaiter(this, void 0, void 0, function* () {
-        const gitReflog = yield runGitCommand(["reflog", "-n", "1"]);
+        // git show --pretty=raw
+        const gitReflog = yield runGitCommand(["show", "--pretty=raw"]);
         const gitRefLogString = gitReflog.standardOutAsString();
-        const search = "checkout: moving from ";
+        const search = "parent ";
         const index = gitRefLogString.indexOf(search);
         if (index != -1) {
-            const endIndex = gitRefLogString.indexOf(" ", index + search.length);
+            const endIndex = gitRefLogString.indexOf("\n", index + search.length);
             if (endIndex != -1) {
                 return gitRefLogString.substring(index + search.length, endIndex);
             }
@@ -46760,7 +46761,23 @@ function run() {
                 for (var file of files) {
                     gitFiles.push(file.substring(prefix.length));
                 }
-                const gitFilesHashOutput = yield runGitCommand(["log", "--pretty=format:%H", "HEAD", "--"].concat(gitFiles));
+                var logTarget = "HEAD";
+                // check whether we are on a PR or
+                const gitRevParse = yield runGitCommand(["rev-parse", "--abbrev-ref", "--symbolic-full-name", "HEAD"]);
+                if (gitRevParse.standardOutAsString().trim() === "HEAD") {
+                    // ups, on a detached branch, most likely a pull request
+                    // so no history is available
+                    console.log("Try to determine original branch");
+                    var detachedLogTarget = yield getCommitLogTarget();
+                    if (detachedLogTarget) {
+                        logTarget = detachedLogTarget;
+                        console.log("Got alternative parent " + logTarget);
+                    }
+                    else {
+                        console.log("Unable to parse alternative parent");
+                    }
+                }
+                const gitFilesHashOutput = yield runGitCommand(["log", "--pretty=format:%H", logTarget, "--"].concat(gitFiles));
                 let hashes = gitFilesHashOutput.standardOutAsStringArray();
                 let restoreKeys = new Array();
                 var goByHash = hashes.length > 0;
@@ -46768,7 +46785,7 @@ function run() {
                     // check commit history for [cache clear] messages,
                     // delete all previous hash commits up to and including [cache clear], insert the [cache clear] itself
                     // check commit messages for [cache clear] commit messages
-                    const commitMessages = yield runGitCommand(["log", "--format=%H %B"]);
+                    const commitMessages = yield runGitCommand(["log", "--format=%H %B", logTarget]);
                     var commmitHashMessages = commitMessages.standardOutAsStringArray();
                     const commitIndex = utils.searchCommitMessages(commmitHashMessages);
                     if (commitIndex != -1) {

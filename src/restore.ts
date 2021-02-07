@@ -43,16 +43,17 @@ class GitOutput {
 
 }
 
-async function getBranch() : Promise<string | undefined> {
-    const gitReflog = await runGitCommand(["reflog", "-n", "1"]);
+async function getCommitLogTarget() : Promise<string | undefined> {
+  // git show --pretty=raw
+    const gitReflog = await runGitCommand(["show", "--pretty=raw"]);
 
     const gitRefLogString = gitReflog.standardOutAsString()
 
-    const search = "checkout: moving from ";
+    const search = "parent ";
 
     const index = gitRefLogString.indexOf(search);
     if(index != -1) {
-        const endIndex = gitRefLogString.indexOf(" ", index + search.length);
+        const endIndex = gitRefLogString.indexOf("\n", index + search.length);
         if(endIndex != -1) {
             return gitRefLogString.substring(index + search.length, endIndex);
         }
@@ -194,7 +195,23 @@ async function run(): Promise<void> {
               gitFiles.push(file.substring(prefix.length));
           }
 
-          const gitFilesHashOutput = await runGitCommand(["log", "--pretty=format:%H", "HEAD", "--"].concat(gitFiles));
+          var logTarget = "HEAD";
+          // check whether we are on a PR or
+          const gitRevParse = await runGitCommand(["rev-parse", "--abbrev-ref", "--symbolic-full-name", "HEAD"]);
+          if(gitRevParse.standardOutAsString().trim() === "HEAD") {
+              // ups, on a detached branch, most likely a pull request
+              // so no history is available
+              console.log("Try to determine original branch");
+              var detachedLogTarget = await getCommitLogTarget();
+              if(detachedLogTarget) {
+                  logTarget = detachedLogTarget;
+                  console.log("Got alternative parent " + logTarget);
+              } else {
+                console.log("Unable to parse alternative parent");
+              }
+          }
+
+          const gitFilesHashOutput = await runGitCommand(["log", "--pretty=format:%H", logTarget, "--"].concat(gitFiles));
 
           let hashes = gitFilesHashOutput.standardOutAsStringArray()
 
@@ -206,7 +223,7 @@ async function run(): Promise<void> {
               // delete all previous hash commits up to and including [cache clear], insert the [cache clear] itself
               // check commit messages for [cache clear] commit messages
 
-              const commitMessages = await runGitCommand(["log", "--format=%H %B"]);
+              const commitMessages = await runGitCommand(["log", "--format=%H %B", logTarget]);
               var commmitHashMessages = commitMessages.standardOutAsStringArray();
 
               const commitIndex = utils.searchCommitMessages(commmitHashMessages);
