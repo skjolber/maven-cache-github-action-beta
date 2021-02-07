@@ -196,7 +196,7 @@ async function run(): Promise<void> {
 
           var logTarget = "HEAD";
           // check whether we are on a PR or
-          const gitRevParse = await runGitCommand(["rev-parse", "--abbrev-ref", "--symbolic-full-name", "HEAD"].concat(gitFiles));
+          const gitRevParse = await runGitCommand(["rev-parse", "--abbrev-ref", "--symbolic-full-name", "HEAD"]);
           if(gitRevParse.standardOutAsString().trim() === "HEAD") {
               // ups, on a detached branch, most likely a pull request
               // so no history is available
