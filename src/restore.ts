@@ -194,22 +194,7 @@ async function run(): Promise<void> {
               gitFiles.push(file.substring(prefix.length));
           }
 
-          var logTarget = "HEAD";
-          // check whether we are on a PR or
-          const gitRevParse = await runGitCommand(["rev-parse", "--abbrev-ref", "--symbolic-full-name", "HEAD"]);
-          if(gitRevParse.standardOutAsString().trim() === "HEAD") {
-              // ups, on a detached branch, most likely a pull request
-              // so no history is available
-              console.log("Try to determine original branch");
-              const branch = await getBranch();
-              if(branch) {
-                  logTarget = "origin/" + branch;
-              } else {
-                console.log("Unable to determine original branch");
-              }
-          }
-
-          const gitFilesHashOutput = await runGitCommand(["log", "--pretty=format:%H", logTarget, "--"].concat(gitFiles));
+          const gitFilesHashOutput = await runGitCommand(["log", "--pretty=format:%H", "HEAD", "--"].concat(gitFiles));
 
           let hashes = gitFilesHashOutput.standardOutAsStringArray()
 

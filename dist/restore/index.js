@@ -46760,22 +46760,7 @@ function run() {
                 for (var file of files) {
                     gitFiles.push(file.substring(prefix.length));
                 }
-                var logTarget = "HEAD";
-                // check whether we are on a PR or
-                const gitRevParse = yield runGitCommand(["rev-parse", "--abbrev-ref", "--symbolic-full-name", "HEAD"]);
-                if (gitRevParse.standardOutAsString().trim() === "HEAD") {
-                    // ups, on a detached branch, most likely a pull request
-                    // so no history is available
-                    console.log("Try to determine original branch");
-                    const branch = yield getBranch();
-                    if (branch) {
-                        logTarget = "origin/" + branch;
-                    }
-                    else {
-                        console.log("Unable to determine original branch");
-                    }
-                }
-                const gitFilesHashOutput = yield runGitCommand(["log", "--pretty=format:%H", logTarget, "--"].concat(gitFiles));
+                const gitFilesHashOutput = yield runGitCommand(["log", "--pretty=format:%H", "HEAD", "--"].concat(gitFiles));
                 let hashes = gitFilesHashOutput.standardOutAsStringArray();
                 let restoreKeys = new Array();
                 var goByHash = hashes.length > 0;
