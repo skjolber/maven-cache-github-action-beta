@@ -315,6 +315,7 @@ async function run(): Promise<void> {
                           // i.e. do not save another cache if the build fails again
                       } else {
                           core.info(`Cache is outdated, expect to save a new cache.`);
+                          console.log("If build is successful, save to key " + restoreKeySuccess + ". If build fails, save to " + restoreKeyFailure)
                           utils.ensureMavenDirectoryExists()
                           fs.writeFileSync(utils.toAbsolutePath(RestoreKeyPath), restoreKeySuccess);
 

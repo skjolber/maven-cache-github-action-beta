@@ -46865,6 +46865,7 @@ function run() {
                             }
                             else {
                                 core.info(`Cache is outdated, expect to save a new cache.`);
+                                console.log("If build is successful, save to key " + restoreKeySuccess + ". If build fails, save to " + restoreKeyFailure);
                                 utils.ensureMavenDirectoryExists();
                                 fs.writeFileSync(utils.toAbsolutePath(constants_1.RestoreKeyPath), restoreKeySuccess);
                                 core.saveState(constants_1.State.FailureHash, restoreKeyFailure);
