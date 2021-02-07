@@ -203,7 +203,7 @@ async function run(): Promise<void> {
               console.log("Try to determine original branch");
               const branch = await getBranch();
               if(branch) {
-                  logTarget = branch;
+                  logTarget = "origin/" + branch;
               } else {
                 console.log("Unable to determine original branch");
               }

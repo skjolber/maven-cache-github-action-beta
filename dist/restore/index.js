@@ -46769,7 +46769,7 @@ function run() {
                     console.log("Try to determine original branch");
                     const branch = yield getBranch();
                     if (branch) {
-                        logTarget = branch;
+                        logTarget = "origin/" + branch;
                     }
                     else {
                         console.log("Unable to determine original branch");
