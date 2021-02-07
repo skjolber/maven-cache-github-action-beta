@@ -13,31 +13,13 @@ jobs:
         uses: actions/setup-java@v1
         with:
           java-version: 11
-      - name: Install dependencies
-        run: pwd && ls -l
       - name: Restore Maven packages from cache
         uses: ./
         with:
           step: restore
-      - name: List m2 jupiter
-        run: ls -l ~/.m2/repository/org/junit/jupiter/junit-jupiter-api
-      - name: List m2 junit-platform-commons
-        run: ls -l ~/.m2/repository/org/junit/platform/junit-platform-commons
-      - name: List m2
-        run: ls -l ~/.m2
       - name: Build with Maven
         run: mvn --batch-mode --update-snapshots verify
-      - name: List m2
-        run: ls -l ~/.m2
-      - name: List m2 jupiter
-        run: ls -l ~/.m2/repository/org/junit/jupiter/junit-jupiter-api
-      - name: List m2 junit-platform-commons
-        run: ls -l ~/.m2/repository/org/junit/platform/junit-platform-commons
       - name: Save Maven packages to cache
         uses: ./
         with:
           step: save
-      - name: List m2 jupiter
-        run: ls -l ~/.m2/repository/org/junit/jupiter/junit-jupiter-api
-      - name: List m2 junit-platform-commons
-        run: ls -l ~/.m2/repository/org/junit/platform/junit-platform-commons
