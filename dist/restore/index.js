@@ -46763,7 +46763,7 @@ function run() {
                 var logTarget = "HEAD";
                 // check whether we are on a PR or
                 const gitRevParse = yield runGitCommand(["rev-parse", "--abbrev-ref", "--symbolic-full-name", "HEAD"].concat(gitFiles));
-                if (gitRevParse.standardOutAsString() === "HEAD") {
+                if (gitRevParse.standardOutAsString().trim() === "HEAD") {
                     // ups, on a detached branch, most likely a pull request
                     // so no history is available
                     console.log("Try to determine original branch");
