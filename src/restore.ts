@@ -43,6 +43,23 @@ class GitOutput {
 
 }
 
+async function getBranch() : Promise<string | undefined> {
+    const gitReflog = await runGitCommand(["reflog", "-n", "1"]);
+
+    const gitRefLogString = gitReflog.standardOutAsString()
+
+    const search = "checkout: moving from ";
+
+    const index = gitRefLogString.indexOf(search);
+    if(index != -1) {
+        const endIndex = gitRefLogString.indexOf(" ", index + search.length);
+        if(endIndex != -1) {
+            return gitRefLogString.substring(index + search.length, endIndex);
+        }
+    }
+    return undefined;
+}
+
 async function runGitCommand(parameters : Array<string>) : Promise<GitOutput> {
   let standardOut = '';
   let errorOut = '';
@@ -177,7 +194,22 @@ async function run(): Promise<void> {
               gitFiles.push(file.substring(prefix.length));
           }
 
-          const gitFilesHashOutput = await runGitCommand(["log", "--pretty=format:%H", "HEAD", "--"].concat(gitFiles));
+          var logTarget = "HEAD";
+          // check whether we are on a PR or
+          const gitRevParse = await runGitCommand(["rev-parse", "--abbrev-ref", "--symbolic-full-name", "HEAD"].concat(gitFiles));
+          if(gitRevParse.standardOutAsString() === "HEAD") {
+              // ups, on a detached branch, most likely a pull request
+              // so no history is available
+              console.log("Try to determine original branch");
+              const branch = await getBranch();
+              if(branch) {
+                  logTarget = branch;
+              } else {
+                console.log("Unable to determine original branch");
+              }
+          }
+
+          const gitFilesHashOutput = await runGitCommand(["log", "--pretty=format:%H", logTarget, "--"].concat(gitFiles));
 
           let hashes = gitFilesHashOutput.standardOutAsStringArray()
 

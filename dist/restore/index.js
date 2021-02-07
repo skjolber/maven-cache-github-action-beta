@@ -46621,6 +46621,21 @@ class GitOutput {
             .filter(x => x !== "");
     }
 }
+function getBranch() {
+    return __awaiter(this, void 0, void 0, function* () {
+        const gitReflog = yield runGitCommand(["reflog", "-n", "1"]);
+        const gitRefLogString = gitReflog.standardOutAsString();
+        const search = "checkout: moving from ";
+        const index = gitRefLogString.indexOf(search);
+        if (index != -1) {
+            const endIndex = gitRefLogString.indexOf(" ", index + search.length);
+            if (endIndex != -1) {
+                return gitRefLogString.substring(index + search.length, endIndex);
+            }
+        }
+        return undefined;
+    });
+}
 function runGitCommand(parameters) {
     return __awaiter(this, void 0, void 0, function* () {
         let standardOut = '';
@@ -46744,7 +46759,22 @@ function run() {
                 for (var file of files) {
                     gitFiles.push(file.substring(prefix.length));
                 }
-                const gitFilesHashOutput = yield runGitCommand(["log", "--pretty=format:%H", "HEAD", "--"].concat(gitFiles));
+                var logTarget = "HEAD";
+                // check whether we are on a PR or
+                const gitRevParse = yield runGitCommand(["rev-parse", "--abbrev-ref", "--symbolic-full-name", "HEAD"].concat(gitFiles));
+                if (gitRevParse.standardOutAsString() === "HEAD") {
+                    // ups, on a detached branch, most likely a pull request
+                    // so no history is available
+                    console.log("Try to determine original branch");
+                    const branch = yield getBranch();
+                    if (branch) {
+                        logTarget = branch;
+                    }
+                    else {
+                        console.log("Unable to determine original branch");
+                    }
+                }
+                const gitFilesHashOutput = yield runGitCommand(["log", "--pretty=format:%H", logTarget, "--"].concat(gitFiles));
                 let hashes = gitFilesHashOutput.standardOutAsStringArray();
                 let restoreKeys = new Array();
                 var goByHash = hashes.length > 0;
