@@ -46784,27 +46784,28 @@ function run() {
                 if (detached) {
                     const gitFilesHashOutput = yield runGitCommand(["log", "--pretty=format:%H", "--"].concat(gitFiles));
                     for (var hash of gitFilesHashOutput.standardOutAsStringArray()) {
-                        console.log("Add " + hash);
                         hashes.push(hash);
                     }
                 }
                 const gitFilesHashOutput = yield runGitCommand(["log", "--pretty=format:%H", logTarget, "--"].concat(gitFiles));
                 for (var hash of gitFilesHashOutput.standardOutAsStringArray()) {
-                    console.log("Add " + hash);
                     hashes.push(hash);
                 }
-                console.log(hashes);
                 console.log("Found " + hashes.length + " hashes from " + gitFilesHashOutput.standardOutAsStringArray());
                 // get the commit hash messages
                 let commmitHashMessages = new Array();
                 if (detached) {
                     const commitMessages = yield runGitCommand(["log", "--format=%H %B"]);
-                    commmitHashMessages.concat(commitMessages.standardOutAsStringArray());
+                    for (var hash of commitMessages.standardOutAsStringArray()) {
+                        commmitHashMessages.push(hash);
+                    }
                 }
                 const commitMessages = yield runGitCommand(["log", "--format=%H %B", logTarget]);
-                commmitHashMessages.concat(commitMessages.standardOutAsStringArray());
+                for (var hash of commitMessages.standardOutAsStringArray()) {
+                    commmitHashMessages.push(hash);
+                }
                 let restoreKeys = new Array();
-                if (hashes.length) {
+                if (hashes.length > 0) {
                     // check commit history for [cache clear] messages,
                     // delete all previous hash commits up to and including [cache clear], insert the [cache clear] itself
                     // check commit messages for [cache clear] commit messages
