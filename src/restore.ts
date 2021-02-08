@@ -194,7 +194,10 @@ async function run(): Promise<void> {
 
           let gitFiles = new Array<string>();
           for (var file of files) {
-              gitFiles.push(file.substring(prefix.length));
+              const fileInGitRepo = file.substring(prefix.length);
+              gitFiles.push(fileInGitRepo);
+
+              console.log("Build file " + fileInGitRepo)
           }
 
           var logTarget = "HEAD";
