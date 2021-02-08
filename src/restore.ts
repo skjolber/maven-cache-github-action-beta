@@ -71,11 +71,9 @@ async function runGitCommand(parameters : Array<string>) : Promise<GitOutput> {
       ignoreReturnCode: false,
       listeners: {
           stdout: (data: Buffer) => {
-              // limit output
               standardOut += data.toString();
           },
           stderr: (data: Buffer) => {
-            // limit output
               errorOut += data.toString();
           }
       }

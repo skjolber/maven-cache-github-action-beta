@@ -46648,11 +46648,9 @@ function runGitCommand(parameters) {
             ignoreReturnCode: false,
             listeners: {
                 stdout: (data) => {
-                    // limit output
                     standardOut += data.toString();
                 },
                 stderr: (data) => {
-                    // limit output
                     errorOut += data.toString();
                 }
             }
