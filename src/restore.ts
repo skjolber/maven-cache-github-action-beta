@@ -220,13 +220,19 @@ async function run(): Promise<void> {
 
           if(detached) {
               const gitFilesHashOutput = await runGitCommand(["log", "--pretty=format:%H", "--"].concat(gitFiles));
-              hashes.concat(gitFilesHashOutput.standardOutAsStringArray())
+              for(var hash of gitFilesHashOutput.standardOutAsString()) {
+                  console.log("Add " + hash)
+                  hashes.push(hash)
+              }
           }
 
           const gitFilesHashOutput = await runGitCommand(["log", "--pretty=format:%H", logTarget, "--"].concat(gitFiles));
-          hashes.concat(gitFilesHashOutput.standardOutAsStringArray())
-          console.log("Captured:")
-          console.log(gitFilesHashOutput.standardOutAsString())
+
+          for(var hash of gitFilesHashOutput.standardOutAsString()) {
+              console.log("Add " + hash)
+              hashes.push(hash)
+          }
+          console.log(hashes)
           console.log("Found " + hashes.length + " hashes from " + gitFilesHashOutput.standardOutAsStringArray());
           // get the commit hash messages
           let commmitHashMessages = new Array<string>();
@@ -238,7 +244,7 @@ async function run(): Promise<void> {
           commmitHashMessages.concat(commitMessages.standardOutAsStringArray());
 
           let restoreKeys = new Array<string>();
-          if(!hashes.length) {
+          if(hashes.length) {
               // check commit history for [cache clear] messages,
               // delete all previous hash commits up to and including [cache clear], insert the [cache clear] itself
               // check commit messages for [cache clear] commit messages
