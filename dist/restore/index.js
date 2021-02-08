@@ -46791,7 +46791,7 @@ function run() {
                 for (var hash of gitFilesHashOutput.standardOutAsStringArray()) {
                     hashes.push(hash);
                 }
-                console.log("Found " + hashes.length + " hashes from " + gitFilesHashOutput.standardOutAsStringArray());
+                console.log("Found " + hashes.length + " hashes");
                 // get the commit hash messages
                 let commmitHashMessages = new Array();
                 if (detached) {
