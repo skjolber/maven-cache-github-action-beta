@@ -220,7 +220,7 @@ async function run(): Promise<void> {
 
           if(detached) {
               const gitFilesHashOutput = await runGitCommand(["log", "--pretty=format:%H", "--"].concat(gitFiles));
-              for(var hash of gitFilesHashOutput.standardOutAsString()) {
+              for(var hash of gitFilesHashOutput.standardOutAsStringArray()) {
                   console.log("Add " + hash)
                   hashes.push(hash)
               }
@@ -228,7 +228,7 @@ async function run(): Promise<void> {
 
           const gitFilesHashOutput = await runGitCommand(["log", "--pretty=format:%H", logTarget, "--"].concat(gitFiles));
 
-          for(var hash of gitFilesHashOutput.standardOutAsString()) {
+          for(var hash of gitFilesHashOutput.standardOutAsStringArray()) {
               console.log("Add " + hash)
               hashes.push(hash)
           }

@@ -46783,13 +46783,13 @@ function run() {
                 let hashes = new Array();
                 if (detached) {
                     const gitFilesHashOutput = yield runGitCommand(["log", "--pretty=format:%H", "--"].concat(gitFiles));
-                    for (var hash of gitFilesHashOutput.standardOutAsString()) {
+                    for (var hash of gitFilesHashOutput.standardOutAsStringArray()) {
                         console.log("Add " + hash);
                         hashes.push(hash);
                     }
                 }
                 const gitFilesHashOutput = yield runGitCommand(["log", "--pretty=format:%H", logTarget, "--"].concat(gitFiles));
-                for (var hash of gitFilesHashOutput.standardOutAsString()) {
+                for (var hash of gitFilesHashOutput.standardOutAsStringArray()) {
                     console.log("Add " + hash);
                     hashes.push(hash);
                 }
