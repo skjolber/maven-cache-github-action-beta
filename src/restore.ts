@@ -66,7 +66,7 @@ async function runGitCommand(parameters : Array<string>) : Promise<GitOutput> {
   let errorOut = '';
 
   await exec.exec('git', parameters, {
-      silent: true,
+      silent: false,
       failOnStdErr: false,
       ignoreReturnCode: false,
       listeners: {
