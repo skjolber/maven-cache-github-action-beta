@@ -46643,21 +46643,17 @@ function runGitCommand(parameters) {
         let standardOut = '';
         let errorOut = '';
         yield exec.exec('git', parameters, {
-            silent: true,
+            silent: false,
             failOnStdErr: false,
             ignoreReturnCode: false,
             listeners: {
                 stdout: (data) => {
                     // limit output
-                    if (standardOut.length < 256 * 1024) {
-                        standardOut += data.toString();
-                    }
+                    standardOut += data.toString();
                 },
                 stderr: (data) => {
                     // limit output
-                    if (errorOut.length < 256 * 1024) {
-                        errorOut += data.toString();
-                    }
+                    errorOut += data.toString();
                 }
             }
         });

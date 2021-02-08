@@ -66,21 +66,17 @@ async function runGitCommand(parameters : Array<string>) : Promise<GitOutput> {
   let errorOut = '';
 
   await exec.exec('git', parameters, {
-      silent: true,
+      silent: false,
       failOnStdErr: false,
       ignoreReturnCode: false,
       listeners: {
           stdout: (data: Buffer) => {
               // limit output
-              if(standardOut.length < 256*1024) {
-                  standardOut += data.toString();
-              }
+              standardOut += data.toString();
           },
           stderr: (data: Buffer) => {
             // limit output
-              if(errorOut.length < 256*1024) {
-                  errorOut += data.toString();
-              }
+              errorOut += data.toString();
           }
       }
   });
