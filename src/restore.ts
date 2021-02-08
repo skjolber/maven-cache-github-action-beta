@@ -223,23 +223,21 @@ async function run(): Promise<void> {
           const gitFilesHashOutput = await runGitCommand(["log", "--pretty=format:%H", logTarget, "--"].concat(gitFiles));
           hashes.concat(gitFilesHashOutput.standardOutAsStringArray())
 
-          let restoreKeys = new Array<string>();
+          // get the commit hash messages
+          let commmitHashMessages = new Array<string>();
+          if(detached) {
+              const commitMessages = await runGitCommand(["log", "--format=%H %B"]);
+              commmitHashMessages.concat(commitMessages.standardOutAsStringArray());
+          }
+          const commitMessages = await runGitCommand(["log", "--format=%H %B", logTarget]);
+          commmitHashMessages.concat(commitMessages.standardOutAsStringArray());
 
+          let restoreKeys = new Array<string>();
           var goByHash = hashes.length > 0
           if(goByHash) {
               // check commit history for [cache clear] messages,
               // delete all previous hash commits up to and including [cache clear], insert the [cache clear] itself
               // check commit messages for [cache clear] commit messages
-              let commmitHashMessages = new Array<string>();
-
-              if(detached) {
-                  const commitMessages = await runGitCommand(["log", "--format=%H %B"]);
-                  commmitHashMessages.concat(commitMessages.standardOutAsStringArray());
-              }
-
-              const commitMessages = await runGitCommand(["log", "--format=%H %B", logTarget]);
-              commmitHashMessages.concat(commitMessages.standardOutAsStringArray());
-
               const commitIndex = utils.searchCommitMessages(commmitHashMessages);
               if(commitIndex != -1) {
                   console.log(`Cache cleaned in commit ${commmitHashMessages[commitIndex]}. Ignore all previous caches.`);
@@ -270,9 +268,6 @@ async function run(): Promise<void> {
               }
           } else {
               // search all of history for a [clear cache] message
-              const commitMessages = await runGitCommand(["log", "--format=%H %B"]);
-              var commmitHashMessages = commitMessages.standardOutAsStringArray();
-
               const commitIndex = utils.searchCommitMessages(commmitHashMessages);
               if(commitIndex != -1) {
                   console.log(`Cache cleaned in commit ${commmitHashMessages[commitIndex]}. Ignore all previous caches.`);
