@@ -46643,7 +46643,7 @@ function runGitCommand(parameters) {
         let standardOut = '';
         let errorOut = '';
         yield exec.exec('git', parameters, {
-            silent: false,
+            silent: true,
             failOnStdErr: false,
             ignoreReturnCode: false,
             listeners: {
@@ -46768,14 +46768,14 @@ function run() {
                 if (detached) {
                     // ups, on a detached branch, most likely a pull request
                     // so no history is available
-                    console.log("Try to determine parent");
+                    console.log("Try to determine parent for detached commit");
                     var detachedLogTarget = yield getCommitLogTarget();
                     if (detachedLogTarget) {
                         logTarget = detachedLogTarget;
-                        console.log("Got alternative parent " + logTarget);
+                        console.log("Found detached parent " + logTarget);
                     }
                     else {
-                        console.log("Unable to parse alternative parent");
+                        console.log("Unable to determine detached parent");
                     }
                 }
                 let hashes = new Array();
