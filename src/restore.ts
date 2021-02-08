@@ -198,10 +198,12 @@ async function run(): Promise<void> {
           var logTarget = "HEAD";
           // check whether we are on a PR or
           const gitRevParse = await runGitCommand(["rev-parse", "--abbrev-ref", "--symbolic-full-name", "HEAD"]);
-          if(gitRevParse.standardOutAsString().trim() === "HEAD") {
+
+          var detached = gitRevParse.standardOutAsString().trim() === "HEAD";
+          if(detached) {
               // ups, on a detached branch, most likely a pull request
               // so no history is available
-              console.log("Try to determine original branch");
+              console.log("Try to determine parent");
               var detachedLogTarget = await getCommitLogTarget();
               if(detachedLogTarget) {
                   logTarget = detachedLogTarget;
@@ -211,9 +213,15 @@ async function run(): Promise<void> {
               }
           }
 
-          const gitFilesHashOutput = await runGitCommand(["log", "--pretty=format:%H", logTarget, "--"].concat(gitFiles));
+          let hashes = new Array<string>();
 
-          let hashes = gitFilesHashOutput.standardOutAsStringArray()
+          if(detached) {
+              const gitFilesHashOutput = await runGitCommand(["log", "--pretty=format:%H", "--"].concat(gitFiles));
+              hashes.concat(gitFilesHashOutput.standardOutAsStringArray())
+          }
+
+          const gitFilesHashOutput = await runGitCommand(["log", "--pretty=format:%H", logTarget, "--"].concat(gitFiles));
+          hashes.concat(gitFilesHashOutput.standardOutAsStringArray())
 
           let restoreKeys = new Array<string>();
 
@@ -222,9 +230,15 @@ async function run(): Promise<void> {
               // check commit history for [cache clear] messages,
               // delete all previous hash commits up to and including [cache clear], insert the [cache clear] itself
               // check commit messages for [cache clear] commit messages
+              let commmitHashMessages = new Array<string>();
+
+              if(detached) {
+                  const commitMessages = await runGitCommand(["log", "--format=%H %B"]);
+                  commmitHashMessages.concat(commitMessages.standardOutAsStringArray());
+              }
 
               const commitMessages = await runGitCommand(["log", "--format=%H %B", logTarget]);
-              var commmitHashMessages = commitMessages.standardOutAsStringArray();
+              commmitHashMessages.concat(commitMessages.standardOutAsStringArray());
 
               const commitIndex = utils.searchCommitMessages(commmitHashMessages);
               if(commitIndex != -1) {

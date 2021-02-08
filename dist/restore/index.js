@@ -46764,10 +46764,11 @@ function run() {
                 var logTarget = "HEAD";
                 // check whether we are on a PR or
                 const gitRevParse = yield runGitCommand(["rev-parse", "--abbrev-ref", "--symbolic-full-name", "HEAD"]);
-                if (gitRevParse.standardOutAsString().trim() === "HEAD") {
+                var detached = gitRevParse.standardOutAsString().trim() === "HEAD";
+                if (detached) {
                     // ups, on a detached branch, most likely a pull request
                     // so no history is available
-                    console.log("Try to determine original branch");
+                    console.log("Try to determine parent");
                     var detachedLogTarget = yield getCommitLogTarget();
                     if (detachedLogTarget) {
                         logTarget = detachedLogTarget;
@@ -46777,16 +46778,26 @@ function run() {
                         console.log("Unable to parse alternative parent");
                     }
                 }
+                let hashes = new Array();
+                if (detached) {
+                    const gitFilesHashOutput = yield runGitCommand(["log", "--pretty=format:%H", "--"].concat(gitFiles));
+                    hashes.concat(gitFilesHashOutput.standardOutAsStringArray());
+                }
                 const gitFilesHashOutput = yield runGitCommand(["log", "--pretty=format:%H", logTarget, "--"].concat(gitFiles));
-                let hashes = gitFilesHashOutput.standardOutAsStringArray();
+                hashes.concat(gitFilesHashOutput.standardOutAsStringArray());
                 let restoreKeys = new Array();
                 var goByHash = hashes.length > 0;
                 if (goByHash) {
                     // check commit history for [cache clear] messages,
                     // delete all previous hash commits up to and including [cache clear], insert the [cache clear] itself
                     // check commit messages for [cache clear] commit messages
+                    let commmitHashMessages = new Array();
+                    if (detached) {
+                        const commitMessages = yield runGitCommand(["log", "--format=%H %B"]);
+                        commmitHashMessages.concat(commitMessages.standardOutAsStringArray());
+                    }
                     const commitMessages = yield runGitCommand(["log", "--format=%H %B", logTarget]);
-                    var commmitHashMessages = commitMessages.standardOutAsStringArray();
+                    commmitHashMessages.concat(commitMessages.standardOutAsStringArray());
                     const commitIndex = utils.searchCommitMessages(commmitHashMessages);
                     if (commitIndex != -1) {
                         console.log(`Cache cleaned in commit ${commmitHashMessages[commitIndex]}. Ignore all previous caches.`);
