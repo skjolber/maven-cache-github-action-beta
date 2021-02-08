@@ -46787,6 +46787,7 @@ function run() {
                 }
                 const gitFilesHashOutput = yield runGitCommand(["log", "--pretty=format:%H", logTarget, "--"].concat(gitFiles));
                 hashes.concat(gitFilesHashOutput.standardOutAsStringArray());
+                console.log("Found " + hashes.length + " hashes");
                 // get the commit hash messages
                 let commmitHashMessages = new Array();
                 if (detached) {
@@ -46796,8 +46797,7 @@ function run() {
                 const commitMessages = yield runGitCommand(["log", "--format=%H %B", logTarget]);
                 commmitHashMessages.concat(commitMessages.standardOutAsStringArray());
                 let restoreKeys = new Array();
-                var goByHash = hashes.length > 0;
-                if (goByHash) {
+                if (!hashes.length) {
                     // check commit history for [cache clear] messages,
                     // delete all previous hash commits up to and including [cache clear], insert the [cache clear] itself
                     // check commit messages for [cache clear] commit messages
