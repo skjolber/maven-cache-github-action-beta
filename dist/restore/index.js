@@ -46625,14 +46625,14 @@ class GitOutput {
 function getCommitLogTarget() {
     return __awaiter(this, void 0, void 0, function* () {
         // git show --pretty=raw
-        const gitReflog = yield runGitCommand(["show", "--pretty=raw"]);
-        const gitRefLogString = gitReflog.standardOutAsString();
+        const showOutput = yield runGitCommand(["show", "--pretty=raw"]);
+        const show = showOutput.standardOutAsString();
         const search = "parent ";
-        const index = gitRefLogString.indexOf(search);
+        const index = show.indexOf(search);
         if (index != -1) {
-            const endIndex = gitRefLogString.indexOf("\n", index + search.length);
+            const endIndex = show.indexOf("\n", index + search.length);
             if (endIndex != -1) {
-                return gitRefLogString.substring(index + search.length, endIndex);
+                return show.substring(index + search.length, endIndex);
             }
         }
         return undefined;
