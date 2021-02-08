@@ -46648,10 +46648,16 @@ function runGitCommand(parameters) {
             ignoreReturnCode: false,
             listeners: {
                 stdout: (data) => {
-                    standardOut += data.toString();
+                    // limit output
+                    if (standardOut.length < 256 * 1024) {
+                        standardOut += data.toString();
+                    }
                 },
                 stderr: (data) => {
-                    errorOut += data.toString();
+                    // limit output
+                    if (errorOut.length < 256 * 1024) {
+                        errorOut += data.toString();
+                    }
                 }
             }
         });
