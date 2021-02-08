@@ -225,7 +225,9 @@ async function run(): Promise<void> {
 
           const gitFilesHashOutput = await runGitCommand(["log", "--pretty=format:%H", logTarget, "--"].concat(gitFiles));
           hashes.concat(gitFilesHashOutput.standardOutAsStringArray())
-          console.log("Found " + hashes.length + " hashes")
+          console.log("Captured:")
+          console.log(gitFilesHashOutput.standardOutAsString())
+          console.log("Found " + hashes.length + " hashes from " + gitFilesHashOutput.standardOutAsStringArray());
           // get the commit hash messages
           let commmitHashMessages = new Array<string>();
           if(detached) {
