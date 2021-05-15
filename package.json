@@ -48,7 +48,7 @@
     "nock": "^11.7.0",
     "prettier": "^1.19.1",
     "ts-jest": "^26.5.0",
-    "typescript": "^3.7.3",
+    "typescript": "3.9.9",
     "node-notifier": ">=8.0.1"
   }
 }
