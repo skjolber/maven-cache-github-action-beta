@@ -91,7 +91,6 @@ export async function removeResolutionAttempts(paths: Array<string>) : Promise<v
   for (var path of paths) {
     const globber = await glob.create(path + "/**/*.lastUpdated", {followSymbolicLinks : false})
     for await (const file of globber.globGenerator()) {
-      console.log("Delete " + file);
       fs.unlinkSync(file);
     }
   }
