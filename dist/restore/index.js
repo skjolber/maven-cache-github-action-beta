@@ -82734,7 +82734,6 @@ var Inputs;
     Inputs["Depth"] = "depth";
     Inputs["UploadChunkSize"] = "upload-chunk-size";
     Inputs["EnableCrossOsArchive"] = "enableCrossOsArchive";
-    Inputs["LookupOnly"] = "lookup-only"; // Input for cache, restore action
 })(Inputs = exports.Inputs || (exports.Inputs = {}));
 var Outputs;
 (function (Outputs) {
@@ -82934,8 +82933,7 @@ function restoreCache(keys) {
             let firstSubkey = subkeys[0];
             subkeys.shift();
             const enableCrossOsArchive = utils.getInputAsBool(constants_1.Inputs.EnableCrossOsArchive);
-            const lookupOnly = utils.getInputAsBool(constants_1.Inputs.LookupOnly);
-            const cacheKey = yield cache.restoreCache(constants_1.CachePaths, firstSubkey, subkeys, { lookupOnly: lookupOnly }, enableCrossOsArchive);
+            const cacheKey = yield cache.restoreCache(constants_1.CachePaths, firstSubkey, subkeys, { lookupOnly: false }, enableCrossOsArchive);
             if (cacheKey) {
                 return cacheKey;
             }

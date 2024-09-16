@@ -8,7 +8,7 @@ import * as crypto from 'crypto'
 import * as util from 'util'
 import * as stream from 'stream'
 
-import { Restore, Events, Inputs, State, MaxCacheKeys, BuildFilesSearch, CachePaths, M2Path, DefaultGitHistoryDepth, RestoreKeyPath} from "./constants";
+import { Restore, Events, Inputs, State, MaxCacheKeys, BuildFilesSearch, CachePaths, DefaultGitHistoryDepth, RestoreKeyPath} from "./constants";
 import * as utils from "./utils/actionUtils";
 import * as maven from "./utils/maven";
 
@@ -124,13 +124,11 @@ async function restoreCache(keys : Array<string>) : Promise<string | undefined> 
             Inputs.EnableCrossOsArchive
         );
 
-        const lookupOnly = utils.getInputAsBool(Inputs.LookupOnly);
-
         const cacheKey = await cache.restoreCache(
             CachePaths,
             firstSubkey,
             subkeys,
-            { lookupOnly: lookupOnly },
+            { lookupOnly: false },
             enableCrossOsArchive
         );
 

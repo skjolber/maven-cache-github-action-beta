@@ -64,3 +64,8 @@ The scripts and documentation in this project are released under the [MIT Licens
  * [Tidy Cache](https://github.com/marketplace/actions/tidy-cache) - clear cache (for successful builds only)
  * Entur [CircleCI Maven Orb](https://github.com/entur/maven-orb)
  * Github [Cache Action](https://github.com/actions/cache)
+ 
+ ## Reload tag
+ 
+ > git tag -d v1 && git push --delete origin v1 && git tag v1 && git push origin --tags
+

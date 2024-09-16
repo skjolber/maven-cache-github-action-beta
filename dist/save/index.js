@@ -82734,7 +82734,6 @@ var Inputs;
     Inputs["Depth"] = "depth";
     Inputs["UploadChunkSize"] = "upload-chunk-size";
     Inputs["EnableCrossOsArchive"] = "enableCrossOsArchive";
-    Inputs["LookupOnly"] = "lookup-only"; // Input for cache, restore action
 })(Inputs = exports.Inputs || (exports.Inputs = {}));
 var Outputs;
 (function (Outputs) {

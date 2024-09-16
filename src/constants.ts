@@ -14,7 +14,6 @@ export enum Inputs {
     Depth = "depth",
     UploadChunkSize = "upload-chunk-size", // Input for cache, save action
     EnableCrossOsArchive = "enableCrossOsArchive", // Input for cache, restore, save action
-    LookupOnly = "lookup-only" // Input for cache, restore action
 }
 
 export enum Outputs {
