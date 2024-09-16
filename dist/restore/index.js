@@ -82733,7 +82733,7 @@ var Inputs;
     Inputs["Step"] = "step";
     Inputs["Depth"] = "depth";
     Inputs["UploadChunkSize"] = "upload-chunk-size";
-    Inputs["EnableCrossOsArchive"] = "enableCrossOsArchive";
+    Inputs["EnableCrossOsArchive"] = "enableCrossOsArchive"; // Input for cache, restore, save action
 })(Inputs = exports.Inputs || (exports.Inputs = {}));
 var Outputs;
 (function (Outputs) {
@@ -82812,14 +82812,14 @@ var __asyncValues = (this && this.__asyncValues) || function (o) {
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 const cache = __importStar(__nccwpck_require__(7799));
-const glob = __importStar(__nccwpck_require__(8090));
 const core = __importStar(__nccwpck_require__(2186));
 const exec = __importStar(__nccwpck_require__(1514));
+const glob = __importStar(__nccwpck_require__(8090));
+const crypto = __importStar(__nccwpck_require__(6113));
 const fs = __importStar(__nccwpck_require__(7147));
 const path = __importStar(__nccwpck_require__(1017));
-const crypto = __importStar(__nccwpck_require__(6113));
-const util = __importStar(__nccwpck_require__(3837));
 const stream = __importStar(__nccwpck_require__(2781));
+const util = __importStar(__nccwpck_require__(3837));
 const constants_1 = __nccwpck_require__(9042);
 const utils = __importStar(__nccwpck_require__(6850));
 const maven = __importStar(__nccwpck_require__(9367));
@@ -82838,7 +82838,8 @@ class GitOutput {
         return this.standardOut.trim();
     }
     standardOutAsStringArray() {
-        return this.standardOut.split("\n")
+        return this.standardOut
+            .split("\n")
             .map(s => s.trim())
             .filter(x => x !== "");
     }
@@ -82861,9 +82862,9 @@ function getCommitLogTarget() {
 }
 function runGitCommand(parameters) {
     return __awaiter(this, void 0, void 0, function* () {
-        let standardOut = '';
-        let errorOut = '';
-        yield exec.exec('git', parameters, {
+        let standardOut = "";
+        let errorOut = "";
+        yield exec.exec("git", parameters, {
             silent: true,
             failOnStdErr: false,
             ignoreReturnCode: false,
@@ -82882,16 +82883,18 @@ function runGitCommand(parameters) {
 function findFiles(matchPatterns) {
     var _a, e_1, _b, _c;
     return __awaiter(this, void 0, void 0, function* () {
-        let buildFiles = new Array();
+        const buildFiles = new Array();
         let followSymbolicLinks = false;
-        if (process.env.followSymbolicLinks === 'true') {
-            console.log('Follow symbolic links');
+        if (process.env.followSymbolicLinks === "true") {
+            console.log("Follow symbolic links");
             followSymbolicLinks = true;
         }
         const githubWorkspace = process.cwd();
         const prefix = `${githubWorkspace}${path.sep}`;
-        for (var matchPattern of matchPatterns) {
-            const globber = yield glob.create(matchPattern, { followSymbolicLinks: followSymbolicLinks });
+        for (const matchPattern of matchPatterns) {
+            const globber = yield glob.create(matchPattern, {
+                followSymbolicLinks: followSymbolicLinks
+            });
             try {
                 for (var _d = true, _e = (e_1 = void 0, __asyncValues(globber.globGenerator())), _f; _f = yield _e.next(), _a = _f.done, !_a;) {
                     _c = _f.value;
@@ -82927,10 +82930,10 @@ function findFiles(matchPatterns) {
 }
 function restoreCache(keys) {
     return __awaiter(this, void 0, void 0, function* () {
-        for (var offset = 0; offset < keys.length; offset += constants_1.MaxCacheKeys) {
-            var limit = Math.min(offset + constants_1.MaxCacheKeys, keys.length);
-            var subkeys = keys.slice(offset, limit);
-            let firstSubkey = subkeys[0];
+        for (let offset = 0; offset < keys.length; offset += constants_1.MaxCacheKeys) {
+            const limit = Math.min(offset + constants_1.MaxCacheKeys, keys.length);
+            const subkeys = keys.slice(offset, limit);
+            const firstSubkey = subkeys[0];
             subkeys.shift();
             const enableCrossOsArchive = utils.getInputAsBool(constants_1.Inputs.EnableCrossOsArchive);
             const cacheKey = yield cache.restoreCache(constants_1.CachePaths, firstSubkey, subkeys, { lookupOnly: false }, enableCrossOsArchive);
@@ -82976,31 +82979,39 @@ function run() {
                     utils.logWarning(`Event Validation Error: The event type ${process.env[constants_1.Events.Key]} is not supported because it's not tied to a branch or tag ref.`);
                     return;
                 }
-                var parameterCacheKeyPrefix = "maven";
-                let files = yield findFiles(constants_1.BuildFilesSearch);
+                const parameterCacheKeyPrefix = "maven";
+                const files = yield findFiles(constants_1.BuildFilesSearch);
                 if (files.length == 0) {
-                    utils.logWarning("No build files found for expression " + constants_1.BuildFilesSearch + ", cache cannot be restored");
+                    utils.logWarning("No build files found for expression " +
+                        constants_1.BuildFilesSearch +
+                        ", cache cannot be restored");
                     return;
                 }
-                const depth = core.getInput(constants_1.Inputs.Depth, { required: false }) || constants_1.DefaultGitHistoryDepth;
-                const fetchOutput = yield runGitCommand(["fetch", "--deepen=" + depth]);
+                const depth = core.getInput(constants_1.Inputs.Depth, { required: false }) ||
+                    constants_1.DefaultGitHistoryDepth;
+                yield runGitCommand(["fetch", "--deepen=" + depth]);
                 const githubWorkspace = process.cwd();
                 const prefix = `${githubWorkspace}${path.sep}`;
-                let gitFiles = new Array();
-                for (var file of files) {
+                const gitFiles = new Array();
+                for (const file of files) {
                     const fileInGitRepo = file.substring(prefix.length);
                     gitFiles.push(fileInGitRepo);
                     console.log("Build file " + fileInGitRepo);
                 }
-                var logTarget = "HEAD";
+                let logTarget = "HEAD";
                 // check whether we are on a PR or
-                const gitRevParse = yield runGitCommand(["rev-parse", "--abbrev-ref", "--symbolic-full-name", "HEAD"]);
-                var detached = gitRevParse.standardOutAsString().trim() === "HEAD";
+                const gitRevParse = yield runGitCommand([
+                    "rev-parse",
+                    "--abbrev-ref",
+                    "--symbolic-full-name",
+                    "HEAD"
+                ]);
+                const detached = gitRevParse.standardOutAsString().trim() === "HEAD";
                 if (detached) {
                     // ups, on a detached branch, most likely a pull request
                     // so no history is available
                     console.log("Try to determine parent for detached commit");
-                    var detachedLogTarget = yield getCommitLogTarget();
+                    const detachedLogTarget = yield getCommitLogTarget();
                     if (detachedLogTarget) {
                         logTarget = detachedLogTarget;
                         console.log("Found detached parent " + logTarget);
@@ -83012,28 +83023,35 @@ function run() {
                 let hashes = new Array();
                 if (detached) {
                     const gitFilesHashOutput = yield runGitCommand(["log", "--pretty=format:%H", "--"].concat(gitFiles));
-                    for (var hash of gitFilesHashOutput.standardOutAsStringArray()) {
+                    for (const hash of gitFilesHashOutput.standardOutAsStringArray()) {
                         hashes.push(hash);
                     }
                 }
                 const gitFilesHashOutput = yield runGitCommand(["log", "--pretty=format:%H", logTarget, "--"].concat(gitFiles));
-                for (var hash of gitFilesHashOutput.standardOutAsStringArray()) {
+                for (const hash of gitFilesHashOutput.standardOutAsStringArray()) {
                     hashes.push(hash);
                 }
                 console.log("Found " + hashes.length + " hashes");
                 // get the commit hash messages
-                let commmitHashMessages = new Array();
+                const commmitHashMessages = new Array();
                 if (detached) {
-                    const commitMessages = yield runGitCommand(["log", "--format=%H %B"]);
-                    for (var hash of commitMessages.standardOutAsStringArray()) {
+                    const commitMessages = yield runGitCommand([
+                        "log",
+                        "--format=%H %B"
+                    ]);
+                    for (const hash of commitMessages.standardOutAsStringArray()) {
                         commmitHashMessages.push(hash);
                     }
                 }
-                const commitMessages = yield runGitCommand(["log", "--format=%H %B", logTarget]);
-                for (var hash of commitMessages.standardOutAsStringArray()) {
+                const commitMessages = yield runGitCommand([
+                    "log",
+                    "--format=%H %B",
+                    logTarget
+                ]);
+                for (const hash of commitMessages.standardOutAsStringArray()) {
                     commmitHashMessages.push(hash);
                 }
-                let restoreKeys = new Array();
+                const restoreKeys = new Array();
                 if (hashes.length > 0) {
                     // check commit history for [cache clear] messages,
                     // delete all previous hash commits up to and including [cache clear], insert the [cache clear] itself
@@ -83044,9 +83062,9 @@ function run() {
                         // determine which commits should be ejected
                         // scan through all later commits from the [clear cache] message
                         // and nuke all hash keys if a match is found
-                        for (var k = commitIndex; k < commmitHashMessages.length; k++) {
-                            var str = commmitHashMessages[k];
-                            var h = str.substr(0, str.indexOf(' '));
+                        for (let k = commitIndex; k < commmitHashMessages.length; k++) {
+                            const str = commmitHashMessages[k];
+                            const h = str.substr(0, str.indexOf(" "));
                             const index = hashes.indexOf(h);
                             if (index > -1) {
                                 hashes = hashes.splice(0, index);
@@ -83054,11 +83072,11 @@ function run() {
                             }
                         }
                         // add the commit with the [clean cache] as a potential cache restore point
-                        var str = commmitHashMessages[commitIndex];
-                        hashes.push(str.substr(0, str.indexOf(' ')));
+                        const str = commmitHashMessages[commitIndex];
+                        hashes.push(str.substr(0, str.indexOf(" ")));
                     }
                     console.log(`Will attempt for restore cache from ${hashes.length} commits`);
-                    for (var hash of hashes) {
+                    for (const hash of hashes) {
                         restoreKeys.push(`${parameterCacheKeyPrefix}-${hash}-success`);
                         restoreKeys.push(`${parameterCacheKeyPrefix}-${hash}-failure`);
                     }
@@ -83073,50 +83091,61 @@ function run() {
                     }
                     else {
                         console.log("No git history found for build files, fall back to using file hash instead");
-                        const result = crypto.createHash('sha256');
-                        for (var file of files) {
-                            const hash = crypto.createHash('sha256');
+                        const result = crypto.createHash("sha256");
+                        for (const file of files) {
+                            const hash = crypto.createHash("sha256");
                             const pipeline = util.promisify(stream.pipeline);
                             yield pipeline(fs.createReadStream(file), hash);
                             result.write(hash.digest());
                         }
                         result.end();
-                        const hashAsString = result.digest('hex');
+                        const hashAsString = result.digest("hex");
                         restoreKeys.push(`${parameterCacheKeyPrefix}-${hashAsString}-success`);
                         restoreKeys.push(`${parameterCacheKeyPrefix}-${hashAsString}-failure`);
                     }
                 }
-                let restoreKeySuccess = restoreKeys[0];
-                let restoreKeyFailure = restoreKeys[1];
+                const restoreKeySuccess = restoreKeys[0];
+                const restoreKeyFailure = restoreKeys[1];
                 try {
-                    var cacheKey = yield restoreCache(restoreKeys);
+                    const cacheKey = yield restoreCache(restoreKeys);
                     if (!cacheKey) {
                         console.log("No cache found for current or previous build files. Expect to save a new cache.");
                         utils.setCacheRestoreOutput(constants_1.Restore.None);
                         utils.ensureMavenDirectoryExists();
-                        console.log("If build is successful, save to key " + restoreKeySuccess + ". If build fails, save to " + restoreKeyFailure);
+                        console.log("If build is successful, save to key " +
+                            restoreKeySuccess +
+                            ". If build fails, save to " +
+                            restoreKeyFailure);
                         fs.writeFileSync(utils.toAbsolutePath(constants_1.RestoreKeyPath), restoreKeySuccess);
                         core.saveState(constants_1.State.FailureHash, restoreKeyFailure);
                         // no point in cleaning cache
                     }
                     else {
-                        const primaryMatch = cacheKey != null && utils.isExactKeyMatch(restoreKeySuccess, cacheKey);
+                        const primaryMatch = cacheKey != null &&
+                            utils.isExactKeyMatch(restoreKeySuccess, cacheKey);
                         if (primaryMatch) {
                             core.info(`Cache is up to date.`);
                             utils.setCacheRestoreOutput(constants_1.Restore.Full);
                         }
                         else {
-                            const secondaryMatch = cacheKey != null && utils.isExactKeyMatch(restoreKeyFailure, cacheKey);
+                            const secondaryMatch = cacheKey != null &&
+                                utils.isExactKeyMatch(restoreKeyFailure, cacheKey);
                             if (secondaryMatch) {
                                 core.info(`Cache was left over after a failed build, expect to clean and save a new cache if build is successful.`);
                                 utils.ensureMavenDirectoryExists();
-                                console.log("If build is successful, save to key " + restoreKeySuccess + ". If build fails, save to " + restoreKeyFailure);
+                                console.log("If build is successful, save to key " +
+                                    restoreKeySuccess +
+                                    ". If build fails, save to " +
+                                    restoreKeyFailure);
                                 fs.writeFileSync(utils.toAbsolutePath(constants_1.RestoreKeyPath), restoreKeySuccess);
                                 // i.e. do not save another cache if the build fails again
                             }
                             else {
                                 core.info(`Cache is outdated, expect to save a new cache.`);
-                                console.log("If build is successful, save to key " + restoreKeySuccess + ". If build fails, save to " + restoreKeyFailure);
+                                console.log("If build is successful, save to key " +
+                                    restoreKeySuccess +
+                                    ". If build fails, save to " +
+                                    restoreKeyFailure);
                                 utils.ensureMavenDirectoryExists();
                                 fs.writeFileSync(utils.toAbsolutePath(constants_1.RestoreKeyPath), restoreKeySuccess);
                                 core.saveState(constants_1.State.FailureHash, restoreKeyFailure);
@@ -83143,7 +83172,10 @@ function run() {
                     if (fs.existsSync(absolutePath)) {
                         console.log("Save cache for successful build..");
                         //file exists
-                        const successKey = fs.readFileSync(absolutePath, { encoding: 'utf8', flag: 'r' });
+                        const successKey = fs.readFileSync(absolutePath, {
+                            encoding: "utf8",
+                            flag: "r"
+                        });
                         yield maven.performCleanup(constants_1.CachePaths);
                         try {
                             yield cache.saveCache(constants_1.CachePaths, successKey, {
@@ -83218,8 +83250,8 @@ var __importStar = (this && this.__importStar) || function (mod) {
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.getInputAsBool = exports.getInputAsInt = exports.getInputAsArray = exports.getOptionalInputAsStringArray = exports.searchCommitMessages = exports.getOptionalInputAsString = exports.ensureMavenDirectoryExists = exports.toAbsolutePath = exports.isValidEvent = exports.logWarning = exports.setCacheRestoreOutput = exports.isExactKeyMatch = exports.isGhes = void 0;
 const core = __importStar(__nccwpck_require__(2186));
-const os = __importStar(__nccwpck_require__(2037));
 const fs = __importStar(__nccwpck_require__(7147));
+const os = __importStar(__nccwpck_require__(2037));
 const constants_1 = __nccwpck_require__(9042);
 function isGhes() {
     const ghUrl = new URL(process.env["GITHUB_SERVER_URL"] || "https://github.com");
@@ -83249,7 +83281,7 @@ function isValidEvent() {
 }
 exports.isValidEvent = isValidEvent;
 function toAbsolutePath(path) {
-    if (path[0] === '~') {
+    if (path[0] === "~") {
         path = os.homedir() + path.slice(1);
     }
     return path;
@@ -83264,7 +83296,7 @@ function ensureMavenDirectoryExists() {
 }
 exports.ensureMavenDirectoryExists = ensureMavenDirectoryExists;
 function getOptionalInputAsString(name, defaultValue) {
-    var x = core.getInput(name, { required: false }).trim();
+    const x = core.getInput(name, { required: false }).trim();
     if (x !== "") {
         return x;
     }
@@ -83272,7 +83304,7 @@ function getOptionalInputAsString(name, defaultValue) {
 }
 exports.getOptionalInputAsString = getOptionalInputAsString;
 function searchCommitMessages(commmitHashMessages) {
-    for (var i = 0; i < commmitHashMessages.length; i++) {
+    for (let i = 0; i < commmitHashMessages.length; i++) {
         if (commmitHashMessages[i].includes(constants_1.CacheClearSearchString)) {
             return i;
         }
@@ -83281,7 +83313,8 @@ function searchCommitMessages(commmitHashMessages) {
 }
 exports.searchCommitMessages = searchCommitMessages;
 function getOptionalInputAsStringArray(name, defaultValue) {
-    var value = core.getInput(name, { required: false })
+    const value = core
+        .getInput(name, { required: false })
         .split("\n")
         .map(s => s.trim())
         .filter(x => x !== "");
@@ -83381,27 +83414,27 @@ var __asyncValues = (this && this.__asyncValues) || function (o) {
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.performCleanup = exports.removeResolutionAttempts = exports.prepareCleanup = exports.downloadCacheHttpClient = void 0;
-const glob = __importStar(__nccwpck_require__(8090));
 const core = __importStar(__nccwpck_require__(2186));
+const glob = __importStar(__nccwpck_require__(8090));
+const http_client_1 = __nccwpck_require__(6255);
 const fs = __importStar(__nccwpck_require__(7147));
-const util = __importStar(__nccwpck_require__(3837));
-const stream = __importStar(__nccwpck_require__(2781));
 const os = __importStar(__nccwpck_require__(2037));
 const path = __importStar(__nccwpck_require__(1017));
-const constants_1 = __nccwpck_require__(8593);
-const http_client_1 = __nccwpck_require__(6255);
-const requestUtils_1 = __nccwpck_require__(8547);
-const constants_2 = __nccwpck_require__(9042);
+const stream = __importStar(__nccwpck_require__(2781));
+const util = __importStar(__nccwpck_require__(3837));
+const constants_1 = __nccwpck_require__(9042);
 const utils = __importStar(__nccwpck_require__(6850));
+const constants_2 = __nccwpck_require__(8593);
+const requestUtils_1 = __nccwpck_require__(8547);
 function downloadCacheHttpClient(archiveLocation, archivePath) {
     return __awaiter(this, void 0, void 0, function* () {
         const writeStream = fs.createWriteStream(archivePath);
-        const httpClient = new http_client_1.HttpClient('actions/cache');
-        const downloadResponse = yield (0, requestUtils_1.retryHttpClientResponse)('downloadCache', () => __awaiter(this, void 0, void 0, function* () { return httpClient.get(archiveLocation); }));
+        const httpClient = new http_client_1.HttpClient("actions/cache");
+        const downloadResponse = yield (0, requestUtils_1.retryHttpClientResponse)("downloadCache", () => __awaiter(this, void 0, void 0, function* () { return httpClient.get(archiveLocation); }));
         // Abort download if no traffic received over the socket.
-        downloadResponse.message.socket.setTimeout(constants_1.SocketTimeout, () => {
+        downloadResponse.message.socket.setTimeout(constants_2.SocketTimeout, () => {
             downloadResponse.message.destroy();
-            core.debug(`Aborting download, socket timed out after ${constants_1.SocketTimeout} ms`);
+            core.debug(`Aborting download, socket timed out after ${constants_2.SocketTimeout} ms`);
         });
         yield pipeResponseToStream(downloadResponse, writeStream);
     });
@@ -83422,15 +83455,14 @@ function pipeResponseToStream(response, output) {
 function prepareCleanup() {
     return __awaiter(this, void 0, void 0, function* () {
         console.log("Prepare for cleanup of Maven cache..");
-        const homedir = os.homedir();
         const mavenDirectory = utils.ensureMavenDirectoryExists();
         const path = mavenDirectory + "/agent-1.0.0.jar";
         if (!fs.existsSync(path)) {
-            yield downloadCacheHttpClient('https://repo1.maven.org/maven2/com/github/skjolber/maven-pom-recorder/agent/1.0.0/agent-1.0.0.jar', path);
+            yield downloadCacheHttpClient("https://repo1.maven.org/maven2/com/github/skjolber/maven-pom-recorder/agent/1.0.0/agent-1.0.0.jar", path);
         }
         if (fs.existsSync(path)) {
             const mavenrc = os.homedir() + "/.mavenrc";
-            var command = `export MAVEN_OPTS=\"$MAVEN_OPTS -javaagent:${path}\"\n`;
+            const command = `export MAVEN_OPTS="$MAVEN_OPTS -javaagent:${path}"\n`;
             fs.appendFileSync(mavenrc, command);
         }
         else {
@@ -83442,9 +83474,11 @@ exports.prepareCleanup = prepareCleanup;
 function findPoms(paths) {
     var _a, e_1, _b, _c;
     return __awaiter(this, void 0, void 0, function* () {
-        let buildFiles = new Set();
-        for (var path of paths) {
-            const globber = yield glob.create(path + "/**/*.pom", { followSymbolicLinks: false });
+        const buildFiles = new Set();
+        for (const path of paths) {
+            const globber = yield glob.create(path + "/**/*.pom", {
+                followSymbolicLinks: false
+            });
             try {
                 for (var _d = true, _e = (e_1 = void 0, __asyncValues(globber.globGenerator())), _f; _f = yield _e.next(), _a = _f.done, !_a;) {
                     _c = _f.value;
@@ -83473,8 +83507,10 @@ function removeResolutionAttempts(paths) {
     var _a, e_2, _b, _c;
     return __awaiter(this, void 0, void 0, function* () {
         console.log("Remove resolution attempts..");
-        for (var path of paths) {
-            const globber = yield glob.create(path + "/**/*.lastUpdated", { followSymbolicLinks: false });
+        for (const path of paths) {
+            const globber = yield glob.create(path + "/**/*.lastUpdated", {
+                followSymbolicLinks: false
+            });
             try {
                 for (var _d = true, _e = (e_2 = void 0, __asyncValues(globber.globGenerator())), _f; _f = yield _e.next(), _a = _f.done, !_a;) {
                     _c = _f.value;
@@ -83501,13 +83537,15 @@ function removeResolutionAttempts(paths) {
 exports.removeResolutionAttempts = removeResolutionAttempts;
 function performCleanup(paths) {
     return __awaiter(this, void 0, void 0, function* () {
-        let pomsInUse = new Set();
-        var m2 = utils.toAbsolutePath(constants_2.M2Path);
-        fs.readdirSync(utils.toAbsolutePath(constants_2.M2Path)).forEach(file => {
+        const pomsInUse = new Set();
+        const m2 = utils.toAbsolutePath(constants_1.M2Path);
+        fs.readdirSync(utils.toAbsolutePath(constants_1.M2Path)).forEach(file => {
             const fileName = path.basename(file);
-            if (fileName.startsWith("maven-pom-recorder-poms-") && fileName.endsWith(".txt")) {
+            if (fileName.startsWith("maven-pom-recorder-poms-") &&
+                fileName.endsWith(".txt")) {
                 console.log("Read file " + file);
-                var poms = fs.readFileSync(m2 + "/" + file, { encoding: 'utf8', flag: 'r' })
+                const poms = fs
+                    .readFileSync(m2 + "/" + file, { encoding: "utf8", flag: "r" })
                     .split("\n")
                     .map(s => s.trim())
                     .filter(x => x !== "");
@@ -83516,14 +83554,20 @@ function performCleanup(paths) {
         });
         if (pomsInUse.size > 0) {
             console.log("Perform cleanup of Maven cache..");
-            var poms = yield findPoms(paths);
-            console.log("Found " + poms.size + " cached artifacts, of which " + pomsInUse.size + " are in use");
-            for (var pom of pomsInUse) {
+            const poms = yield findPoms(paths);
+            console.log("Found " +
+                poms.size +
+                " cached artifacts, of which " +
+                pomsInUse.size +
+                " are in use");
+            for (const pom of pomsInUse) {
                 poms.delete(pom);
             }
-            console.log("Delete " + poms.size + " cached artifacts which are no longer in use.");
-            for (var pom of poms) {
-                var parent = path.dirname(pom);
+            console.log("Delete " +
+                poms.size +
+                " cached artifacts which are no longer in use.");
+            for (const pom of poms) {
+                const parent = path.dirname(pom);
                 console.log("Delete directory " + parent);
                 if (!fs.existsSync(parent)) {
                     console.log("Parent does not exist");
@@ -83619,7 +83663,7 @@ function sleep(milliseconds) {
 }
 function retry(name, method, getStatusCode, maxAttempts = constants_1.DefaultRetryAttempts, delay = constants_1.DefaultRetryDelay, onError = undefined) {
     return __awaiter(this, void 0, void 0, function* () {
-        let errorMessage = '';
+        let errorMessage = "";
         let attempt = 1;
         while (attempt <= maxAttempts) {
             let response = undefined;

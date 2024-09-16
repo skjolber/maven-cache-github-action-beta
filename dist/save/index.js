@@ -82733,7 +82733,7 @@ var Inputs;
     Inputs["Step"] = "step";
     Inputs["Depth"] = "depth";
     Inputs["UploadChunkSize"] = "upload-chunk-size";
-    Inputs["EnableCrossOsArchive"] = "enableCrossOsArchive";
+    Inputs["EnableCrossOsArchive"] = "enableCrossOsArchive"; // Input for cache, restore, save action
 })(Inputs = exports.Inputs || (exports.Inputs = {}));
 var Outputs;
 (function (Outputs) {
@@ -82806,9 +82806,9 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 const cache = __importStar(__nccwpck_require__(7799));
 const core = __importStar(__nccwpck_require__(2186));
-const maven = __importStar(__nccwpck_require__(9367));
 const constants_1 = __nccwpck_require__(9042);
 const utils = __importStar(__nccwpck_require__(6850));
+const maven = __importStar(__nccwpck_require__(9367));
 function run() {
     return __awaiter(this, void 0, void 0, function* () {
         // so job failed
@@ -82826,7 +82826,9 @@ function run() {
                         uploadChunkSize: utils.getInputAsInt(constants_1.Inputs.UploadChunkSize)
                     }, enableCrossOsArchive);
                     console.log("Cache saved for failed build. Another cache will be saved once the build is successful.");
-                    const cacheId = yield cache.saveCache(constants_1.CachePaths, hash, { uploadChunkSize: utils.getInputAsInt(constants_1.Inputs.UploadChunkSize) }, enableCrossOsArchive);
+                    const cacheId = yield cache.saveCache(constants_1.CachePaths, hash, {
+                        uploadChunkSize: utils.getInputAsInt(constants_1.Inputs.UploadChunkSize)
+                    }, enableCrossOsArchive);
                     if (cacheId != -1) {
                         core.info(`Cache saved with key: ${hash}`);
                     }
@@ -82887,8 +82889,8 @@ var __importStar = (this && this.__importStar) || function (mod) {
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.getInputAsBool = exports.getInputAsInt = exports.getInputAsArray = exports.getOptionalInputAsStringArray = exports.searchCommitMessages = exports.getOptionalInputAsString = exports.ensureMavenDirectoryExists = exports.toAbsolutePath = exports.isValidEvent = exports.logWarning = exports.setCacheRestoreOutput = exports.isExactKeyMatch = exports.isGhes = void 0;
 const core = __importStar(__nccwpck_require__(2186));
-const os = __importStar(__nccwpck_require__(2037));
 const fs = __importStar(__nccwpck_require__(7147));
+const os = __importStar(__nccwpck_require__(2037));
 const constants_1 = __nccwpck_require__(9042);
 function isGhes() {
     const ghUrl = new URL(process.env["GITHUB_SERVER_URL"] || "https://github.com");
@@ -82918,7 +82920,7 @@ function isValidEvent() {
 }
 exports.isValidEvent = isValidEvent;
 function toAbsolutePath(path) {
-    if (path[0] === '~') {
+    if (path[0] === "~") {
         path = os.homedir() + path.slice(1);
     }
     return path;
@@ -82933,7 +82935,7 @@ function ensureMavenDirectoryExists() {
 }
 exports.ensureMavenDirectoryExists = ensureMavenDirectoryExists;
 function getOptionalInputAsString(name, defaultValue) {
-    var x = core.getInput(name, { required: false }).trim();
+    const x = core.getInput(name, { required: false }).trim();
     if (x !== "") {
         return x;
     }
@@ -82941,7 +82943,7 @@ function getOptionalInputAsString(name, defaultValue) {
 }
 exports.getOptionalInputAsString = getOptionalInputAsString;
 function searchCommitMessages(commmitHashMessages) {
-    for (var i = 0; i < commmitHashMessages.length; i++) {
+    for (let i = 0; i < commmitHashMessages.length; i++) {
         if (commmitHashMessages[i].includes(constants_1.CacheClearSearchString)) {
             return i;
         }
@@ -82950,7 +82952,8 @@ function searchCommitMessages(commmitHashMessages) {
 }
 exports.searchCommitMessages = searchCommitMessages;
 function getOptionalInputAsStringArray(name, defaultValue) {
-    var value = core.getInput(name, { required: false })
+    const value = core
+        .getInput(name, { required: false })
         .split("\n")
         .map(s => s.trim())
         .filter(x => x !== "");
@@ -83050,27 +83053,27 @@ var __asyncValues = (this && this.__asyncValues) || function (o) {
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.performCleanup = exports.removeResolutionAttempts = exports.prepareCleanup = exports.downloadCacheHttpClient = void 0;
-const glob = __importStar(__nccwpck_require__(8090));
 const core = __importStar(__nccwpck_require__(2186));
+const glob = __importStar(__nccwpck_require__(8090));
+const http_client_1 = __nccwpck_require__(6255);
 const fs = __importStar(__nccwpck_require__(7147));
-const util = __importStar(__nccwpck_require__(3837));
-const stream = __importStar(__nccwpck_require__(2781));
 const os = __importStar(__nccwpck_require__(2037));
 const path = __importStar(__nccwpck_require__(1017));
-const constants_1 = __nccwpck_require__(8593);
-const http_client_1 = __nccwpck_require__(6255);
-const requestUtils_1 = __nccwpck_require__(8547);
-const constants_2 = __nccwpck_require__(9042);
+const stream = __importStar(__nccwpck_require__(2781));
+const util = __importStar(__nccwpck_require__(3837));
+const constants_1 = __nccwpck_require__(9042);
 const utils = __importStar(__nccwpck_require__(6850));
+const constants_2 = __nccwpck_require__(8593);
+const requestUtils_1 = __nccwpck_require__(8547);
 function downloadCacheHttpClient(archiveLocation, archivePath) {
     return __awaiter(this, void 0, void 0, function* () {
         const writeStream = fs.createWriteStream(archivePath);
-        const httpClient = new http_client_1.HttpClient('actions/cache');
-        const downloadResponse = yield (0, requestUtils_1.retryHttpClientResponse)('downloadCache', () => __awaiter(this, void 0, void 0, function* () { return httpClient.get(archiveLocation); }));
+        const httpClient = new http_client_1.HttpClient("actions/cache");
+        const downloadResponse = yield (0, requestUtils_1.retryHttpClientResponse)("downloadCache", () => __awaiter(this, void 0, void 0, function* () { return httpClient.get(archiveLocation); }));
         // Abort download if no traffic received over the socket.
-        downloadResponse.message.socket.setTimeout(constants_1.SocketTimeout, () => {
+        downloadResponse.message.socket.setTimeout(constants_2.SocketTimeout, () => {
             downloadResponse.message.destroy();
-            core.debug(`Aborting download, socket timed out after ${constants_1.SocketTimeout} ms`);
+            core.debug(`Aborting download, socket timed out after ${constants_2.SocketTimeout} ms`);
         });
         yield pipeResponseToStream(downloadResponse, writeStream);
     });
@@ -83091,15 +83094,14 @@ function pipeResponseToStream(response, output) {
 function prepareCleanup() {
     return __awaiter(this, void 0, void 0, function* () {
         console.log("Prepare for cleanup of Maven cache..");
-        const homedir = os.homedir();
         const mavenDirectory = utils.ensureMavenDirectoryExists();
         const path = mavenDirectory + "/agent-1.0.0.jar";
         if (!fs.existsSync(path)) {
-            yield downloadCacheHttpClient('https://repo1.maven.org/maven2/com/github/skjolber/maven-pom-recorder/agent/1.0.0/agent-1.0.0.jar', path);
+            yield downloadCacheHttpClient("https://repo1.maven.org/maven2/com/github/skjolber/maven-pom-recorder/agent/1.0.0/agent-1.0.0.jar", path);
         }
         if (fs.existsSync(path)) {
             const mavenrc = os.homedir() + "/.mavenrc";
-            var command = `export MAVEN_OPTS=\"$MAVEN_OPTS -javaagent:${path}\"\n`;
+            const command = `export MAVEN_OPTS="$MAVEN_OPTS -javaagent:${path}"\n`;
             fs.appendFileSync(mavenrc, command);
         }
         else {
@@ -83111,9 +83113,11 @@ exports.prepareCleanup = prepareCleanup;
 function findPoms(paths) {
     var _a, e_1, _b, _c;
     return __awaiter(this, void 0, void 0, function* () {
-        let buildFiles = new Set();
-        for (var path of paths) {
-            const globber = yield glob.create(path + "/**/*.pom", { followSymbolicLinks: false });
+        const buildFiles = new Set();
+        for (const path of paths) {
+            const globber = yield glob.create(path + "/**/*.pom", {
+                followSymbolicLinks: false
+            });
             try {
                 for (var _d = true, _e = (e_1 = void 0, __asyncValues(globber.globGenerator())), _f; _f = yield _e.next(), _a = _f.done, !_a;) {
                     _c = _f.value;
@@ -83142,8 +83146,10 @@ function removeResolutionAttempts(paths) {
     var _a, e_2, _b, _c;
     return __awaiter(this, void 0, void 0, function* () {
         console.log("Remove resolution attempts..");
-        for (var path of paths) {
-            const globber = yield glob.create(path + "/**/*.lastUpdated", { followSymbolicLinks: false });
+        for (const path of paths) {
+            const globber = yield glob.create(path + "/**/*.lastUpdated", {
+                followSymbolicLinks: false
+            });
             try {
                 for (var _d = true, _e = (e_2 = void 0, __asyncValues(globber.globGenerator())), _f; _f = yield _e.next(), _a = _f.done, !_a;) {
                     _c = _f.value;
@@ -83170,13 +83176,15 @@ function removeResolutionAttempts(paths) {
 exports.removeResolutionAttempts = removeResolutionAttempts;
 function performCleanup(paths) {
     return __awaiter(this, void 0, void 0, function* () {
-        let pomsInUse = new Set();
-        var m2 = utils.toAbsolutePath(constants_2.M2Path);
-        fs.readdirSync(utils.toAbsolutePath(constants_2.M2Path)).forEach(file => {
+        const pomsInUse = new Set();
+        const m2 = utils.toAbsolutePath(constants_1.M2Path);
+        fs.readdirSync(utils.toAbsolutePath(constants_1.M2Path)).forEach(file => {
             const fileName = path.basename(file);
-            if (fileName.startsWith("maven-pom-recorder-poms-") && fileName.endsWith(".txt")) {
+            if (fileName.startsWith("maven-pom-recorder-poms-") &&
+                fileName.endsWith(".txt")) {
                 console.log("Read file " + file);
-                var poms = fs.readFileSync(m2 + "/" + file, { encoding: 'utf8', flag: 'r' })
+                const poms = fs
+                    .readFileSync(m2 + "/" + file, { encoding: "utf8", flag: "r" })
                     .split("\n")
                     .map(s => s.trim())
                     .filter(x => x !== "");
@@ -83185,14 +83193,20 @@ function performCleanup(paths) {
         });
         if (pomsInUse.size > 0) {
             console.log("Perform cleanup of Maven cache..");
-            var poms = yield findPoms(paths);
-            console.log("Found " + poms.size + " cached artifacts, of which " + pomsInUse.size + " are in use");
-            for (var pom of pomsInUse) {
+            const poms = yield findPoms(paths);
+            console.log("Found " +
+                poms.size +
+                " cached artifacts, of which " +
+                pomsInUse.size +
+                " are in use");
+            for (const pom of pomsInUse) {
                 poms.delete(pom);
             }
-            console.log("Delete " + poms.size + " cached artifacts which are no longer in use.");
-            for (var pom of poms) {
-                var parent = path.dirname(pom);
+            console.log("Delete " +
+                poms.size +
+                " cached artifacts which are no longer in use.");
+            for (const pom of poms) {
+                const parent = path.dirname(pom);
                 console.log("Delete directory " + parent);
                 if (!fs.existsSync(parent)) {
                     console.log("Parent does not exist");
@@ -83288,7 +83302,7 @@ function sleep(milliseconds) {
 }
 function retry(name, method, getStatusCode, maxAttempts = constants_1.DefaultRetryAttempts, delay = constants_1.DefaultRetryDelay, onError = undefined) {
     return __awaiter(this, void 0, void 0, function* () {
-        let errorMessage = '';
+        let errorMessage = "";
         let attempt = 1;
         while (attempt <= maxAttempts) {
             let response = undefined;
