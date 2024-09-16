@@ -1,10 +1,6 @@
-import * as cache from "@actions/cache";
 import * as glob from '@actions/glob'
 import * as core from "@actions/core";
-import * as exec from "@actions/exec";
-import * as io from "@actions/io";
 import * as fs from 'fs'
-import * as crypto from 'crypto'
 import * as util from 'util'
 import * as stream from 'stream'
 import * as os from 'os'
@@ -12,8 +8,7 @@ import * as path from 'path'
 
 import {SocketTimeout} from './constants'
 
-import {HttpClient} from '@actions/http-client'
-import {IHttpClientResponse} from '@actions/http-client/interfaces'
+import {HttpClient, HttpClientResponse} from '@actions/http-client'
 
 import {retryHttpClientResponse} from './requestUtils'
 
@@ -48,7 +43,7 @@ export async function downloadCacheHttpClient(
  * @param output the writable stream
  */
 async function pipeResponseToStream(
-  response: IHttpClientResponse,
+  response: HttpClientResponse,
   output: NodeJS.WritableStream
 ): Promise<void> {
   const pipeline = util.promisify(stream.pipeline)

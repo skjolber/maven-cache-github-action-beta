@@ -1,9 +1,5 @@
 import * as core from '@actions/core'
-import {HttpCodes, HttpClientError} from '@actions/http-client'
-import {
-  IHttpClientResponse,
-  ITypedResponse
-} from '@actions/http-client/interfaces'
+import {HttpCodes, HttpClientError, HttpClientResponse} from '@actions/http-client'
 import {DefaultRetryDelay, DefaultRetryAttempts} from './constants'
 
 export function isSuccessStatusCode(statusCode?: number): boolean {
@@ -54,7 +50,8 @@ export async function retry<T>(
 
     try {
       response = await method()
-    } catch (error) {
+    } catch (err: unknown) {
+      const error = err as Error
       if (onError) {
         response = onError(error)
       }
@@ -92,44 +89,16 @@ export async function retry<T>(
   throw Error(`${name} failed: ${errorMessage}`)
 }
 
-export async function retryTypedResponse<T>(
-  name: string,
-  method: () => Promise<ITypedResponse<T>>,
-  maxAttempts = DefaultRetryAttempts,
-  delay = DefaultRetryDelay
-): Promise<ITypedResponse<T>> {
-  return await retry(
-    name,
-    method,
-    (response: ITypedResponse<T>) => response.statusCode,
-    maxAttempts,
-    delay,
-    // If the error object contains the statusCode property, extract it and return
-    // an ITypedResponse<T> so it can be processed by the retry logic.
-    (error: Error) => {
-      if (error instanceof HttpClientError) {
-        return {
-          statusCode: error.statusCode,
-          result: null,
-          headers: {}
-        }
-      } else {
-        return undefined
-      }
-    }
-  )
-}
-
 export async function retryHttpClientResponse<T>(
   name: string,
-  method: () => Promise<IHttpClientResponse>,
+  method: () => Promise<HttpClientResponse>,
   maxAttempts = DefaultRetryAttempts,
   delay = DefaultRetryDelay
-): Promise<IHttpClientResponse> {
+): Promise<HttpClientResponse> {
   return await retry(
     name,
     method,
-    (response: IHttpClientResponse) => response.message.statusCode,
+    (response: HttpClientResponse) => response.message.statusCode,
     maxAttempts,
     delay
   )

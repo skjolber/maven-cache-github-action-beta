@@ -20,6 +20,7 @@ export function isExactKeyMatch(key: string, cacheKey?: string): boolean {
     );
 }
 
+
 export function setCacheRestoreOutput(result: Restore): void {
     core.setOutput(Outputs.CacheRestore, result.toString());
 }
@@ -107,4 +108,12 @@ export function getInputAsInt(
         return undefined;
     }
     return value;
+}
+
+export function getInputAsBool(
+    name: string,
+    options?: core.InputOptions
+): boolean {
+    const result = core.getInput(name, options);
+    return result.toLowerCase() === "true";
 }

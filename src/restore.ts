@@ -2,13 +2,11 @@ import * as cache from "@actions/cache";
 import * as glob from '@actions/glob'
 import * as core from "@actions/core";
 import * as exec from "@actions/exec";
-import * as io from "@actions/io";
 import * as fs from 'fs'
 import * as path from 'path'
 import * as crypto from 'crypto'
 import * as util from 'util'
 import * as stream from 'stream'
-import * as os from 'os'
 
 import { Restore, Events, Inputs, State, MaxCacheKeys, BuildFilesSearch, CachePaths, M2Path, DefaultGitHistoryDepth, RestoreKeyPath} from "./constants";
 import * as utils from "./utils/actionUtils";
@@ -122,10 +120,18 @@ async function restoreCache(keys : Array<string>) : Promise<string | undefined> 
         let firstSubkey = subkeys[0];
         subkeys.shift()
 
+        const enableCrossOsArchive = utils.getInputAsBool(
+            Inputs.EnableCrossOsArchive
+        );
+
+        const lookupOnly = utils.getInputAsBool(Inputs.LookupOnly);
+
         const cacheKey = await cache.restoreCache(
             CachePaths,
             firstSubkey,
-            subkeys
+            subkeys,
+            { lookupOnly: lookupOnly },
+            enableCrossOsArchive
         );
 
         if(cacheKey) {
@@ -347,7 +353,8 @@ async function run(): Promise<void> {
                       maven.prepareCleanup();
                   }
               }
-          } catch (error) {
+          } catch (err: unknown) {
+              const error = err as Error
               if (error.name === cache.ValidationError.name) {
                   throw error;
               } else {
@@ -370,7 +377,8 @@ async function run(): Promise<void> {
                     await cache.saveCache(CachePaths, successKey, {
                         uploadChunkSize: utils.getInputAsInt(Inputs.UploadChunkSize)
                     });
-                } catch (error) {
+                } catch (err) {
+                    const error = err as Error
                     if (error.name === cache.ValidationError.name) {
                         throw error;
                     } else if (error.name === cache.ReserveCacheError.name) {
@@ -388,7 +396,8 @@ async function run(): Promise<void> {
         } else {
             core.setFailed("Step must be 'restore' or 'save'");
         }
-    } catch (error) {
+    } catch (err) {
+        const error = err as Error
         core.setFailed(error.message);
     }
 }

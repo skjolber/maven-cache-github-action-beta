@@ -1,7 +1,5 @@
 import * as cache from "@actions/cache";
 import * as core from "@actions/core";
-import * as exec from "@actions/exec";
-import * as path from 'path'
 import * as maven from "./utils/maven";
 
 import { Events, Inputs, State, CachePaths } from "./constants";
@@ -21,14 +19,29 @@ async function run(): Promise<void> {
 
         // nuke resolution attempts, so that resolution is always reattempted on next build
 
+        const enableCrossOsArchive = utils.getInputAsBool(
+            Inputs.EnableCrossOsArchive
+        );
+
         await maven.removeResolutionAttempts(CachePaths);
 
         try {
             await cache.saveCache(CachePaths, hash, {
                 uploadChunkSize: utils.getInputAsInt(Inputs.UploadChunkSize)
-            });
+            }, enableCrossOsArchive);
             console.log("Cache saved for failed build. Another cache will be saved once the build is successful.")
-        } catch (error) {
+
+            const cacheId = await cache.saveCache(
+                CachePaths, hash,
+                { uploadChunkSize: utils.getInputAsInt(Inputs.UploadChunkSize) },
+                enableCrossOsArchive
+            );
+    
+            if (cacheId != -1) {
+                core.info(`Cache saved with key: ${hash}`);
+            }
+        } catch (err: unknown) {
+            const error = err as Error
             if (error.name === cache.ValidationError.name) {
                 throw error;
             } else if (error.name === cache.ReserveCacheError.name) {
