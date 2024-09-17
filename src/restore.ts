@@ -172,8 +172,6 @@ async function getFileHash(files: Array<string>) {
 export async function saveWrapperCache() {
     // simple file-hash based wrapper cache
 
-    console.log("Save wrapper cache");
-
     const key = loadWrapperCacheKey();
     if (key) {
         if (utils.isMavenWrapperDirectory()) {
@@ -232,7 +230,7 @@ export async function restoreWrapperCache() {
 
         const cacheKeyPrefix = utils.getCacheKeyPrefix();
 
-        const key = cacheKeyPrefix + hash;
+        const key = cacheKeyPrefix + "wrapper-" + hash;
 
         console.log("Restoring maven wrapper..");
         const cacheKey = await cache.restoreCache(
