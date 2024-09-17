@@ -545,10 +545,12 @@ async function run(): Promise<void> {
                                 )
                             );
 
+                            const uploadChunkSize = utils.getInputAsInt(Inputs.UploadChunkSize)
+
                             // note: might be undefined
                             core.saveState(
                                 State.UploadChunkSize,
-                                utils.getInputAsInt(Inputs.UploadChunkSize)
+                                uploadChunkSize ? uploadChunkSize : -1
                             );
                         }
                         utils.setCacheRestoreOutput(Restore.Partial);

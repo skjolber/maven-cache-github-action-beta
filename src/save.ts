@@ -26,14 +26,15 @@ async function run(): Promise<void> {
             const enableCrossOsArchive =
                 core.getState(State.EnableCrossOsArchive) == "true";
 
-            const uploadChunkSize = core.getState(State.UploadChunkSize);
+            const uploadChunkSizeString = core.getState(State.UploadChunkSize);
+            const uploadChunkSize = parseInt(uploadChunkSizeString)
 
             try {
                 const cacheId = await cache.saveCache(
                     cachePaths,
                     hash,
                     {
-                        uploadChunkSize: uploadChunkSize
+                        uploadChunkSize: uploadChunkSize == -1 ? undefined : uploadChunkSize
                     },
                     enableCrossOsArchive
                 );

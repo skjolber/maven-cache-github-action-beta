@@ -82719,21 +82719,24 @@ module.exports = v4;
 "use strict";
 
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.RefKey = exports.Restore = exports.Events = exports.BuildSystems = exports.State = exports.Outputs = exports.Inputs = exports.RestoreKeyPath = exports.DefaultGitHistoryDepth = exports.CachePaths = exports.M2RepositoryPath = exports.M2Path = exports.BuildFilesSearch = exports.CacheClearSearchString = exports.MaxCacheKeys = void 0;
+exports.RefKey = exports.Restore = exports.Events = exports.BuildSystems = exports.State = exports.Outputs = exports.Inputs = exports.MavenWrapperPath = exports.MavenWrapperPropertiesPath = exports.RestoreKeyPath = exports.DefaultGitHistoryDepth = exports.M2RepositoryPath = exports.M2Path = exports.DefaultKeyPaths = exports.CacheClearSearchString = exports.MaxCacheKeys = void 0;
 exports.MaxCacheKeys = 10;
 exports.CacheClearSearchString = "[cache clear]";
-exports.BuildFilesSearch = ["**/pom.xml"];
+exports.DefaultKeyPaths = ["**/pom.xml"];
 exports.M2Path = "~/.m2";
 exports.M2RepositoryPath = "~/.m2/repository";
-exports.CachePaths = [exports.M2RepositoryPath];
 exports.DefaultGitHistoryDepth = 100;
 exports.RestoreKeyPath = exports.M2Path + "/cache-restore-key-success";
+exports.MavenWrapperPropertiesPath = ".mvn/wrapper/maven-wrapper.properties";
+exports.MavenWrapperPath = "~/.m2/wrapper";
 var Inputs;
 (function (Inputs) {
     Inputs["Step"] = "step";
     Inputs["Depth"] = "depth";
     Inputs["UploadChunkSize"] = "upload-chunk-size";
-    Inputs["EnableCrossOsArchive"] = "enableCrossOsArchive"; // Input for cache, restore, save action
+    Inputs["EnableCrossOsArchive"] = "enableCrossOsArchive";
+    Inputs["KeyPath"] = "key-path";
+    Inputs["Wrapper"] = "wrapper";
 })(Inputs = exports.Inputs || (exports.Inputs = {}));
 var Outputs;
 (function (Outputs) {
@@ -82744,6 +82747,8 @@ var State;
     State["Step"] = "STEP";
     State["FailureHash"] = "FAILUREHASH";
     State["UploadChunkSize"] = "UPLOADCHUNKSIZE";
+    State["EnableCrossOsArchive"] = "ENABLECROSSOSARCHIVE";
+    State["Wrapper"] = "MAVENWRAPPER";
 })(State = exports.State || (exports.State = {}));
 var BuildSystems;
 (function (BuildSystems) {
@@ -82811,6 +82816,7 @@ var __asyncValues = (this && this.__asyncValues) || function (o) {
     function settle(resolve, reject, d, v) { Promise.resolve(v).then(function(v) { resolve({ value: v, done: d }); }, reject); }
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.restoreWrapperCache = exports.saveWrapperCache = void 0;
 const cache = __importStar(__nccwpck_require__(7799));
 const core = __importStar(__nccwpck_require__(2186));
 const exec = __importStar(__nccwpck_require__(1514));
@@ -82936,7 +82942,8 @@ function restoreCache(keys) {
             const firstSubkey = subkeys[0];
             subkeys.shift();
             const enableCrossOsArchive = utils.getInputAsBool(constants_1.Inputs.EnableCrossOsArchive);
-            const cacheKey = yield cache.restoreCache(constants_1.CachePaths, firstSubkey, subkeys, { lookupOnly: false }, enableCrossOsArchive);
+            const cachePaths = utils.getCachePaths();
+            const cacheKey = yield cache.restoreCache(cachePaths, firstSubkey, subkeys, { lookupOnly: false }, enableCrossOsArchive);
             if (cacheKey) {
                 return cacheKey;
             }
@@ -82944,6 +82951,82 @@ function restoreCache(keys) {
         return undefined;
     });
 }
+function getFileHash(files) {
+    return __awaiter(this, void 0, void 0, function* () {
+        const result = crypto.createHash("sha256");
+        for (const file of files) {
+            const hash = crypto.createHash("sha256");
+            const pipeline = util.promisify(stream.pipeline);
+            yield pipeline(fs.createReadStream(file), hash);
+            result.write(hash.digest());
+        }
+        result.end();
+        return result.digest("hex");
+    });
+}
+function saveWrapperCache() {
+    return __awaiter(this, void 0, void 0, function* () {
+        // simple file-hash based wrapper cache
+        const state = core.getState(constants_1.State.Wrapper);
+        if (state == "save") {
+            const files = yield findFiles([constants_1.MavenWrapperPropertiesPath]);
+            if (files.length > 0) {
+                const hash = yield getFileHash(files);
+                const enableCrossOsArchive = utils.getInputAsBool(constants_1.Inputs.EnableCrossOsArchive);
+                try {
+                    const result = yield cache.saveCache([constants_1.MavenWrapperPath], hash, {
+                        uploadChunkSize: utils.getInputAsInt(constants_1.Inputs.UploadChunkSize)
+                    }, enableCrossOsArchive);
+                    console.log("Saved maven wrapper");
+                    return result;
+                }
+                catch (err) {
+                    const error = err;
+                    if (error.name === cache.ValidationError.name) {
+                        throw error;
+                    }
+                    else if (error.name === cache.ReserveCacheError.name) {
+                        core.info(error.message);
+                    }
+                    else {
+                        utils.logWarning(error.message);
+                    }
+                    console.log("Unable to save maven wrapper");
+                }
+            }
+            else {
+                console.log("Not saving wrapper, no files fount for " +
+                    constants_1.MavenWrapperPropertiesPath);
+            }
+        }
+        return undefined;
+    });
+}
+exports.saveWrapperCache = saveWrapperCache;
+function restoreWrapperCache() {
+    return __awaiter(this, void 0, void 0, function* () {
+        // simple file-hash based wrapper cache
+        const files = yield findFiles([constants_1.MavenWrapperPropertiesPath]);
+        if (files.length > 0) {
+            const hash = yield getFileHash(files);
+            const enableCrossOsArchive = utils.getInputAsBool(constants_1.Inputs.EnableCrossOsArchive);
+            const cacheKey = yield cache.restoreCache([constants_1.MavenWrapperPath], hash, [], { lookupOnly: false }, enableCrossOsArchive);
+            if (cacheKey) {
+                console.log("Restored maven wrapper");
+                return cacheKey;
+            }
+            console.log("Unable to restore maven wrapper");
+            // save wrapper once build completes
+            core.saveState(constants_1.State.Wrapper, "save");
+        }
+        else {
+            console.log("Not restoring wrapper, no files fount for " +
+                constants_1.MavenWrapperPropertiesPath);
+        }
+        return undefined;
+    });
+}
+exports.restoreWrapperCache = restoreWrapperCache;
 /*
 Overall plan:
 
@@ -82980,10 +83063,11 @@ function run() {
                     return;
                 }
                 const parameterCacheKeyPrefix = "maven";
-                const files = yield findFiles(constants_1.BuildFilesSearch);
+                const keyPaths = utils.getKeyPaths();
+                const files = yield findFiles(keyPaths);
                 if (files.length == 0) {
-                    utils.logWarning("No build files found for expression " +
-                        constants_1.BuildFilesSearch +
+                    utils.logWarning("No key files found for expression " +
+                        keyPaths +
                         ", cache cannot be restored");
                     return;
                 }
@@ -83064,7 +83148,7 @@ function run() {
                         // and nuke all hash keys if a match is found
                         for (let k = commitIndex; k < commmitHashMessages.length; k++) {
                             const str = commmitHashMessages[k];
-                            const h = str.substr(0, str.indexOf(" "));
+                            const h = str.substring(0, str.indexOf(" "));
                             const index = hashes.indexOf(h);
                             if (index > -1) {
                                 hashes = hashes.splice(0, index);
@@ -83073,7 +83157,7 @@ function run() {
                         }
                         // add the commit with the [clean cache] as a potential cache restore point
                         const str = commmitHashMessages[commitIndex];
-                        hashes.push(str.substr(0, str.indexOf(" ")));
+                        hashes.push(str.substring(0, str.indexOf(" ")));
                     }
                     console.log(`Will attempt for restore cache from ${hashes.length} commits`);
                     for (const hash of hashes) {
@@ -83091,15 +83175,7 @@ function run() {
                     }
                     else {
                         console.log("No git history found for build files, fall back to using file hash instead");
-                        const result = crypto.createHash("sha256");
-                        for (const file of files) {
-                            const hash = crypto.createHash("sha256");
-                            const pipeline = util.promisify(stream.pipeline);
-                            yield pipeline(fs.createReadStream(file), hash);
-                            result.write(hash.digest());
-                        }
-                        result.end();
-                        const hashAsString = result.digest("hex");
+                        const hashAsString = yield getFileHash(files);
                         restoreKeys.push(`${parameterCacheKeyPrefix}-${hashAsString}-success`);
                         restoreKeys.push(`${parameterCacheKeyPrefix}-${hashAsString}-failure`);
                     }
@@ -83149,6 +83225,10 @@ function run() {
                                 utils.ensureMavenDirectoryExists();
                                 fs.writeFileSync(utils.toAbsolutePath(constants_1.RestoreKeyPath), restoreKeySuccess);
                                 core.saveState(constants_1.State.FailureHash, restoreKeyFailure);
+                                core.saveState(constants_1.State.EnableCrossOsArchive, utils.getInputAsBool(constants_1.Inputs.EnableCrossOsArchive));
+                                const uploadChunkSize = utils.getInputAsInt(constants_1.Inputs.UploadChunkSize);
+                                // note: might be undefined
+                                core.saveState(constants_1.State.UploadChunkSize, uploadChunkSize ? uploadChunkSize : -1);
                             }
                             utils.setCacheRestoreOutput(constants_1.Restore.Partial);
                             maven.prepareCleanup();
@@ -83165,6 +83245,15 @@ function run() {
                         utils.setCacheRestoreOutput(constants_1.Restore.None);
                     }
                 }
+                const wrapper = utils.getInputAsBool(constants_1.Inputs.Wrapper);
+                if (wrapper) {
+                    try {
+                        yield restoreWrapperCache();
+                    }
+                    catch (err) {
+                        console.log("Problem restoring wrapper cache", err);
+                    }
+                }
             }
             else if (step === "save") {
                 try {
@@ -83176,11 +83265,13 @@ function run() {
                             encoding: "utf8",
                             flag: "r"
                         });
-                        yield maven.performCleanup(constants_1.CachePaths);
+                        const cachePaths = utils.getCachePaths();
+                        yield maven.performCleanup(cachePaths);
+                        const enableCrossOsArchive = utils.getInputAsBool(constants_1.Inputs.EnableCrossOsArchive);
                         try {
-                            yield cache.saveCache(constants_1.CachePaths, successKey, {
+                            yield cache.saveCache(cachePaths, successKey, {
                                 uploadChunkSize: utils.getInputAsInt(constants_1.Inputs.UploadChunkSize)
-                            });
+                            }, enableCrossOsArchive);
                         }
                         catch (err) {
                             const error = err;
@@ -83201,6 +83292,12 @@ function run() {
                 }
                 catch (err) {
                     console.error(err);
+                }
+                try {
+                    yield saveWrapperCache();
+                }
+                catch (err) {
+                    console.log("Problem saving wrapper cache", err);
                 }
             }
             else {
@@ -83248,7 +83345,7 @@ var __importStar = (this && this.__importStar) || function (mod) {
     return result;
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.getInputAsBool = exports.getInputAsInt = exports.getInputAsArray = exports.getOptionalInputAsStringArray = exports.searchCommitMessages = exports.getOptionalInputAsString = exports.ensureMavenDirectoryExists = exports.toAbsolutePath = exports.isValidEvent = exports.logWarning = exports.setCacheRestoreOutput = exports.isExactKeyMatch = exports.isGhes = void 0;
+exports.getKeyPaths = exports.getCachePaths = exports.getInputAsBool = exports.getInputAsInt = exports.getInputAsArray = exports.getOptionalInputAsStringArray = exports.searchCommitMessages = exports.getOptionalInputAsString = exports.ensureMavenDirectoryExists = exports.toAbsolutePath = exports.isValidEvent = exports.logWarning = exports.setCacheRestoreOutput = exports.isExactKeyMatch = exports.isGhes = void 0;
 const core = __importStar(__nccwpck_require__(2186));
 const fs = __importStar(__nccwpck_require__(7147));
 const os = __importStar(__nccwpck_require__(2037));
@@ -83345,6 +83442,20 @@ function getInputAsBool(name, options) {
     return result.toLowerCase() === "true";
 }
 exports.getInputAsBool = getInputAsBool;
+function getCachePaths() {
+    return [constants_1.M2RepositoryPath];
+}
+exports.getCachePaths = getCachePaths;
+function getKeyPaths() {
+    let keyPaths = getInputAsArray(constants_1.Inputs.KeyPath, {
+        required: false
+    });
+    if (keyPaths.length == 0) {
+        keyPaths = constants_1.DefaultKeyPaths;
+    }
+    return keyPaths;
+}
+exports.getKeyPaths = getKeyPaths;
 
 
 /***/ }),
