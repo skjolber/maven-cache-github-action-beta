@@ -82969,8 +82969,8 @@ function saveWrapperCache() {
     return __awaiter(this, void 0, void 0, function* () {
         // simple file-hash based wrapper cache
         console.log("Save wrapper cache");
-        const state = core.getState(constants_1.State.Wrapper);
-        if (state == "not-restored") {
+        const wrapperState = core.getState(constants_1.State.Wrapper);
+        if (wrapperState == "pending") {
             const files = yield findFiles([constants_1.MavenWrapperPropertiesPath]);
             if (files.length > 0) {
                 if (utils.isMavenWrapperDirectory()) {
@@ -83001,17 +83001,18 @@ function saveWrapperCache() {
                 }
                 else {
                     console.log("Not saving wrapper, directory " +
-                        constants_1.MavenWrapperPath + " does not exist.");
+                        constants_1.MavenWrapperPath +
+                        " does not exist.");
                 }
             }
             else {
                 console.log("Not saving wrapper, no files found for " +
-                    constants_1.MavenWrapperPropertiesPath + ".");
+                    constants_1.MavenWrapperPropertiesPath +
+                    ".");
             }
         }
         else {
-            console.log("Not saving wrapper for state " +
-                state + ".");
+            console.log("Not saving wrapper for state " + wrapperState + ".");
         }
         return undefined;
     });
@@ -83034,11 +83035,12 @@ function restoreWrapperCache() {
             }
             console.log("Unable to restore maven wrapper, cache miss.");
             // save wrapper once build completes
-            core.saveState(constants_1.State.Wrapper, "not-restored");
+            core.saveState(constants_1.State.Wrapper, "pending");
         }
         else {
             console.log("Not restoring wrapper, no files fount for " +
-                constants_1.MavenWrapperPropertiesPath + ".");
+                constants_1.MavenWrapperPropertiesPath +
+                ".");
             core.saveState(constants_1.State.Wrapper, "disabled");
         }
         return undefined;
