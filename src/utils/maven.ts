@@ -148,7 +148,7 @@ export async function performCleanup(paths: Array<string>): Promise<void> {
                 console.log("Parent does not exist");
             }
 
-            fs.rmdirSync(parent, { recursive: true });
+            fs.rmSync(parent, { recursive: true });
 
             if (fs.existsSync(parent)) {
                 console.log("Parent exists");
