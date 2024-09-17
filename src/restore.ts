@@ -171,8 +171,10 @@ async function getFileHash(files: Array<string>) {
 export async function saveWrapperCache() {
     // simple file-hash based wrapper cache
 
+    console.log("Save wrapper cache")
+
     const state = core.getState(State.Wrapper);
-    if (state == "save") {
+    if (state == "not-restored") {
         const files = await findFiles([MavenWrapperPropertiesPath]);
         if (files.length > 0) {
 
@@ -223,6 +225,11 @@ export async function saveWrapperCache() {
                     MavenWrapperPropertiesPath + "."
             );
         }
+    } else {
+        console.log(
+            "Not saving wrapper for state " +
+                state + "."
+        );
     }
     return undefined;
 }
@@ -252,17 +259,20 @@ export async function restoreWrapperCache() {
         if (cacheKey) {
             console.log("Restored maven wrapper.");
 
+            core.saveState(State.Wrapper, "restored");
+
             return cacheKey;
         }
-        console.log("Unable to restore maven wrapper.");
+        console.log("Unable to restore maven wrapper, cache miss.");
 
         // save wrapper once build completes
-        core.saveState(State.Wrapper, "save");
+        core.saveState(State.Wrapper, "not-restored");
     } else {
         console.log(
             "Not restoring wrapper, no files fount for " +
                 MavenWrapperPropertiesPath + "."
         );
+        core.saveState(State.Wrapper, "disabled");
     }
     return undefined;
 }
@@ -590,6 +600,8 @@ async function run(): Promise<void> {
                 } catch (err: unknown) {
                     console.log("Problem restoring wrapper cache", err);
                 }
+            } else {
+                core.saveState(State.Wrapper, "disabled");
             }
         } else if (step === "save") {
             try {
