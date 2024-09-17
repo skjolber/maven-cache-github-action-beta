@@ -83074,6 +83074,8 @@ function run() {
     return __awaiter(this, void 0, void 0, function* () {
         try {
             const step = core.getInput(constants_1.Inputs.Step, { required: true });
+            const stepState = core.getState(constants_1.State.Step);
+            console.log("SAVE with state " + step + " and input " + stepState);
             core.saveState(constants_1.State.Step, step);
             if (step === "restore") {
                 if (utils.isGhes()) {
@@ -83390,6 +83392,8 @@ function run() {
         // so job failed
         // however was the cache already saved
         const step = core.getState(constants_1.State.Step);
+        const stepInput = core.getInput(constants_1.Inputs.Step, { required: true });
+        console.log("SAVE with state " + step + " and input " + stepInput);
         if (step === "restore") {
             const hash = core.getState(constants_1.State.FailureHash);
             if (hash.length > 0) {
@@ -83819,7 +83823,7 @@ function performCleanup(paths) {
                 if (!fs.existsSync(parent)) {
                     console.log("Parent does not exist");
                 }
-                fs.rmdirSync(parent, { recursive: true });
+                fs.rmSync(parent, { recursive: true });
                 if (fs.existsSync(parent)) {
                     console.log("Parent exists");
                 }

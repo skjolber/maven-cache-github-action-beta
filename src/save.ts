@@ -1,7 +1,7 @@
 import * as cache from "@actions/cache";
 import * as core from "@actions/core";
 
-import { State } from "./constants";
+import { Inputs, State } from "./constants";
 import { saveWrapperCache } from "./restore";
 import * as utils from "./utils/actionUtils";
 import * as maven from "./utils/maven";
@@ -10,6 +10,9 @@ async function run(): Promise<void> {
     // so job failed
     // however was the cache already saved
     const step = core.getState(State.Step);
+    const stepInput = core.getInput(Inputs.Step, { required: true });
+
+    console.log("SAVE with state " + step + " and input " + stepInput)
 
     if (step === "restore") {
         const hash = core.getState(State.FailureHash);

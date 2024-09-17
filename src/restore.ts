@@ -300,7 +300,12 @@ Overall plan:
 async function run(): Promise<void> {
     try {
         const step = core.getInput(Inputs.Step, { required: true });
+        const stepState = core.getState(State.Step);
+    
+        console.log("SAVE with state " + step + " and input " + stepState)
+    
         core.saveState(State.Step, step);
+
         if (step === "restore") {
             if (utils.isGhes()) {
                 utils.logWarning("Cache action is not supported on GHES");
