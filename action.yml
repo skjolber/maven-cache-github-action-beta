@@ -23,6 +23,11 @@ inputs:
     description: 'Cache the Maven wrapper if the .mvn wrapper directory is detected'
     default: 'true'
     required: false
+  cache-key-prefix:
+    description: 'Prefix for cache keys'
+    default: 'maven-cache-github-action-'
+    required: false
+
 outputs:
   cache-restore:
     description: 'A value to indicate result of cache restore: none, partial or full.'

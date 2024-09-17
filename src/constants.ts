@@ -15,7 +15,8 @@ export enum Inputs {
     UploadChunkSize = "upload-chunk-size", // Input for cache, save action
     EnableCrossOsArchive = "enableCrossOsArchive", // Input for cache, restore, save action
     KeyPath = "key-path",
-    Wrapper = "wrapper"
+    Wrapper = "wrapper",
+    CacheKeyPrefix = "cache-key-prefix"
 }
 
 export enum Outputs {
