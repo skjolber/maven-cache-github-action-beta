@@ -9,11 +9,11 @@ import * as stream from "stream";
 import * as util from "util";
 
 import {
-    BuildFilesSearch,
-    CachePaths,
     DefaultGitHistoryDepth,
     Events,
     Inputs,
+    MavenWrapperPath,
+    MavenWrapperPropertiesPath,
     MaxCacheKeys,
     Restore,
     RestoreKeyPath,
@@ -138,8 +138,10 @@ async function restoreCache(keys: Array<string>): Promise<string | undefined> {
             Inputs.EnableCrossOsArchive
         );
 
+        const cachePaths = utils.getCachePaths();
+
         const cacheKey = await cache.restoreCache(
-            CachePaths,
+            cachePaths,
             firstSubkey,
             subkeys,
             { lookupOnly: false },
@@ -149,6 +151,103 @@ async function restoreCache(keys: Array<string>): Promise<string | undefined> {
         if (cacheKey) {
             return cacheKey;
         }
+    }
+    return undefined;
+}
+
+async function getFileHash(files: Array<string>) {
+    const result = crypto.createHash("sha256");
+    for (const file of files) {
+        const hash = crypto.createHash("sha256");
+        const pipeline = util.promisify(stream.pipeline);
+        await pipeline(fs.createReadStream(file), hash);
+        result.write(hash.digest());
+    }
+    result.end();
+
+    return result.digest("hex");
+}
+
+export async function saveWrapperCache() {
+    // simple file-hash based wrapper cache
+
+    const state = core.getState(State.Wrapper);
+    if (state == "save") {
+        const files = await findFiles([MavenWrapperPropertiesPath]);
+        if (files.length > 0) {
+            const hash = await getFileHash(files);
+
+            const enableCrossOsArchive = utils.getInputAsBool(
+                Inputs.EnableCrossOsArchive
+            );
+
+            try {
+                const result = await cache.saveCache(
+                    [MavenWrapperPath],
+                    hash,
+                    {
+                        uploadChunkSize: utils.getInputAsInt(
+                            Inputs.UploadChunkSize
+                        )
+                    },
+                    enableCrossOsArchive
+                );
+                console.log("Saved maven wrapper");
+                return result;
+            } catch (err) {
+                const error = err as Error;
+                if (error.name === cache.ValidationError.name) {
+                    throw error;
+                } else if (error.name === cache.ReserveCacheError.name) {
+                    core.info(error.message);
+                } else {
+                    utils.logWarning(error.message);
+                }
+                console.log("Unable to save maven wrapper");
+            }
+        } else {
+            console.log(
+                "Not saving wrapper, no files fount for " +
+                    MavenWrapperPropertiesPath
+            );
+        }
+    }
+    return undefined;
+}
+
+export async function restoreWrapperCache() {
+    // simple file-hash based wrapper cache
+
+    const files = await findFiles([MavenWrapperPropertiesPath]);
+    if (files.length > 0) {
+        const hash = await getFileHash(files);
+
+        const enableCrossOsArchive = utils.getInputAsBool(
+            Inputs.EnableCrossOsArchive
+        );
+
+        const cacheKey = await cache.restoreCache(
+            [MavenWrapperPath],
+            hash,
+            [],
+            { lookupOnly: false },
+            enableCrossOsArchive
+        );
+
+        if (cacheKey) {
+            console.log("Restored maven wrapper");
+
+            return cacheKey;
+        }
+        console.log("Unable to restore maven wrapper");
+
+        // save wrapper once build completes
+        core.saveState(State.Wrapper, "save");
+    } else {
+        console.log(
+            "Not restoring wrapper, no files fount for " +
+                MavenWrapperPropertiesPath
+        );
     }
     return undefined;
 }
@@ -196,11 +295,13 @@ async function run(): Promise<void> {
 
             const parameterCacheKeyPrefix = "maven";
 
-            const files = await findFiles(BuildFilesSearch);
+            const keyPaths = utils.getKeyPaths();
+
+            const files = await findFiles(keyPaths);
             if (files.length == 0) {
                 utils.logWarning(
-                    "No build files found for expression " +
-                        BuildFilesSearch +
+                    "No key files found for expression " +
+                        keyPaths +
                         ", cache cannot be restored"
                 );
                 return;
@@ -305,7 +406,7 @@ async function run(): Promise<void> {
                         k++
                     ) {
                         const str = commmitHashMessages[k];
-                        const h = str.substr(0, str.indexOf(" "));
+                        const h = str.substring(0, str.indexOf(" "));
                         const index = hashes.indexOf(h);
                         if (index > -1) {
                             hashes = hashes.splice(0, index);
@@ -315,7 +416,7 @@ async function run(): Promise<void> {
 
                     // add the commit with the [clean cache] as a potential cache restore point
                     const str = commmitHashMessages[commitIndex];
-                    hashes.push(str.substr(0, str.indexOf(" ")));
+                    hashes.push(str.substring(0, str.indexOf(" ")));
                 }
 
                 console.log(
@@ -350,16 +451,7 @@ async function run(): Promise<void> {
                         "No git history found for build files, fall back to using file hash instead"
                     );
 
-                    const result = crypto.createHash("sha256");
-                    for (const file of files) {
-                        const hash = crypto.createHash("sha256");
-                        const pipeline = util.promisify(stream.pipeline);
-                        await pipeline(fs.createReadStream(file), hash);
-                        result.write(hash.digest());
-                    }
-                    result.end();
-
-                    const hashAsString = result.digest("hex");
+                    const hashAsString = await getFileHash(files);
 
                     restoreKeys.push(
                         `${parameterCacheKeyPrefix}-${hashAsString}-success`
@@ -445,6 +537,19 @@ async function run(): Promise<void> {
                                 State.FailureHash,
                                 restoreKeyFailure
                             );
+
+                            core.saveState(
+                                State.EnableCrossOsArchive,
+                                utils.getInputAsBool(
+                                    Inputs.EnableCrossOsArchive
+                                )
+                            );
+
+                            // note: might be undefined
+                            core.saveState(
+                                State.UploadChunkSize,
+                                utils.getInputAsInt(Inputs.UploadChunkSize)
+                            );
                         }
                         utils.setCacheRestoreOutput(Restore.Partial);
 
@@ -460,6 +565,15 @@ async function run(): Promise<void> {
                     utils.setCacheRestoreOutput(Restore.None);
                 }
             }
+
+            const wrapper = utils.getInputAsBool(Inputs.Wrapper);
+            if (wrapper) {
+                try {
+                    await restoreWrapperCache();
+                } catch (err: unknown) {
+                    console.log("Problem restoring wrapper cache", err);
+                }
+            }
         } else if (step === "save") {
             try {
                 const absolutePath = utils.toAbsolutePath(RestoreKeyPath);
@@ -472,14 +586,25 @@ async function run(): Promise<void> {
                         flag: "r"
                     });
 
-                    await maven.performCleanup(CachePaths);
+                    const cachePaths = utils.getCachePaths();
+
+                    await maven.performCleanup(cachePaths);
+
+                    const enableCrossOsArchive = utils.getInputAsBool(
+                        Inputs.EnableCrossOsArchive
+                    );
 
                     try {
-                        await cache.saveCache(CachePaths, successKey, {
-                            uploadChunkSize: utils.getInputAsInt(
-                                Inputs.UploadChunkSize
-                            )
-                        });
+                        await cache.saveCache(
+                            cachePaths,
+                            successKey,
+                            {
+                                uploadChunkSize: utils.getInputAsInt(
+                                    Inputs.UploadChunkSize
+                                )
+                            },
+                            enableCrossOsArchive
+                        );
                     } catch (err) {
                         const error = err as Error;
                         if (error.name === cache.ValidationError.name) {
@@ -499,6 +624,12 @@ async function run(): Promise<void> {
                 }
             } catch (err) {
                 console.error(err);
+            }
+
+            try {
+                await saveWrapperCache();
+            } catch (err: unknown) {
+                console.log("Problem saving wrapper cache", err);
             }
         } else {
             core.setFailed("Step must be 'restore' or 'save'");

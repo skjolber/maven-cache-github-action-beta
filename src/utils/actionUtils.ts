@@ -4,6 +4,8 @@ import * as os from "os";
 
 import {
     CacheClearSearchString,
+    DefaultKeyPaths,
+    Inputs,
     M2RepositoryPath,
     Outputs,
     RefKey,
@@ -121,4 +123,19 @@ export function getInputAsBool(
 ): boolean {
     const result = core.getInput(name, options);
     return result.toLowerCase() === "true";
+}
+
+export function getCachePaths() {
+    return [M2RepositoryPath];
+}
+
+export function getKeyPaths() {
+    let keyPaths = getInputAsArray(Inputs.KeyPath, {
+        required: false
+    });
+
+    if (keyPaths.length == 0) {
+        keyPaths = DefaultKeyPaths;
+    }
+    return keyPaths;
 }

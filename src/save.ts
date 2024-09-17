@@ -1,7 +1,8 @@
 import * as cache from "@actions/cache";
 import * as core from "@actions/core";
 
-import { CachePaths, Inputs, State } from "./constants";
+import { State } from "./constants";
+import { saveWrapperCache } from "./restore";
 import * as utils from "./utils/actionUtils";
 import * as maven from "./utils/maven";
 
@@ -18,34 +19,21 @@ async function run(): Promise<void> {
 
             // nuke resolution attempts, so that resolution is always reattempted on next build
 
-            const enableCrossOsArchive = utils.getInputAsBool(
-                Inputs.EnableCrossOsArchive
-            );
+            const cachePaths = utils.getCachePaths();
 
-            await maven.removeResolutionAttempts(CachePaths);
+            await maven.removeResolutionAttempts(cachePaths);
+
+            const enableCrossOsArchive =
+                core.getState(State.EnableCrossOsArchive) == "true";
+
+            const uploadChunkSize = core.getState(State.UploadChunkSize);
 
             try {
-                await cache.saveCache(
-                    CachePaths,
-                    hash,
-                    {
-                        uploadChunkSize: utils.getInputAsInt(
-                            Inputs.UploadChunkSize
-                        )
-                    },
-                    enableCrossOsArchive
-                );
-                console.log(
-                    "Cache saved for failed build. Another cache will be saved once the build is successful."
-                );
-
                 const cacheId = await cache.saveCache(
-                    CachePaths,
+                    cachePaths,
                     hash,
                     {
-                        uploadChunkSize: utils.getInputAsInt(
-                            Inputs.UploadChunkSize
-                        )
+                        uploadChunkSize: uploadChunkSize
                     },
                     enableCrossOsArchive
                 );
@@ -65,6 +53,12 @@ async function run(): Promise<void> {
             }
         } else {
             console.log("Do not save cache for failed build");
+        }
+
+        try {
+            await saveWrapperCache();
+        } catch (err: unknown) {
+            console.log("Problem saving wrapper cache", err);
         }
     }
 }
