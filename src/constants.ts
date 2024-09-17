@@ -5,6 +5,7 @@ export const M2Path = "~/.m2";
 export const M2RepositoryPath = "~/.m2/repository";
 export const DefaultGitHistoryDepth = 100;
 export const RestoreKeyPath = M2Path + "/cache-restore-key-success";
+export const RestoreWrapperKeyPath = M2Path + "/cache-restore-wrapper-key";
 export const MavenWrapperPropertiesPath =
     ".mvn/wrapper/maven-wrapper.properties";
 export const MavenWrapperPath = "~/.m2/wrapper";
@@ -27,8 +28,7 @@ export enum State {
     Step = "STEP",
     FailureHash = "FAILUREHASH",
     UploadChunkSize = "UPLOADCHUNKSIZE",
-    EnableCrossOsArchive = "ENABLECROSSOSARCHIVE",
-    Wrapper = "MAVENWRAPPER"
+    EnableCrossOsArchive = "ENABLECROSSOSARCHIVE"
 }
 
 export enum BuildSystems {

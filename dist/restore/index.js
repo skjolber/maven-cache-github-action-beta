@@ -82719,7 +82719,7 @@ module.exports = v4;
 "use strict";
 
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.RefKey = exports.Restore = exports.Events = exports.BuildSystems = exports.State = exports.Outputs = exports.Inputs = exports.MavenWrapperPath = exports.MavenWrapperPropertiesPath = exports.RestoreKeyPath = exports.DefaultGitHistoryDepth = exports.M2RepositoryPath = exports.M2Path = exports.DefaultKeyPaths = exports.CacheClearSearchString = exports.MaxCacheKeys = void 0;
+exports.RefKey = exports.Restore = exports.Events = exports.BuildSystems = exports.State = exports.Outputs = exports.Inputs = exports.MavenWrapperPath = exports.MavenWrapperPropertiesPath = exports.RestoreWrapperKeyPath = exports.RestoreKeyPath = exports.DefaultGitHistoryDepth = exports.M2RepositoryPath = exports.M2Path = exports.DefaultKeyPaths = exports.CacheClearSearchString = exports.MaxCacheKeys = void 0;
 exports.MaxCacheKeys = 10;
 exports.CacheClearSearchString = "[cache clear]";
 exports.DefaultKeyPaths = ["**/pom.xml"];
@@ -82727,6 +82727,7 @@ exports.M2Path = "~/.m2";
 exports.M2RepositoryPath = "~/.m2/repository";
 exports.DefaultGitHistoryDepth = 100;
 exports.RestoreKeyPath = exports.M2Path + "/cache-restore-key-success";
+exports.RestoreWrapperKeyPath = exports.M2Path + "/cache-restore-wrapper-key";
 exports.MavenWrapperPropertiesPath = ".mvn/wrapper/maven-wrapper.properties";
 exports.MavenWrapperPath = "~/.m2/wrapper";
 var Inputs;
@@ -82749,7 +82750,6 @@ var State;
     State["FailureHash"] = "FAILUREHASH";
     State["UploadChunkSize"] = "UPLOADCHUNKSIZE";
     State["EnableCrossOsArchive"] = "ENABLECROSSOSARCHIVE";
-    State["Wrapper"] = "MAVENWRAPPER";
 })(State = exports.State || (exports.State = {}));
 var BuildSystems;
 (function (BuildSystems) {
@@ -82969,50 +82969,40 @@ function saveWrapperCache() {
     return __awaiter(this, void 0, void 0, function* () {
         // simple file-hash based wrapper cache
         console.log("Save wrapper cache");
-        const wrapperState = core.getState(constants_1.State.Wrapper);
-        if (wrapperState == "pending") {
-            const files = yield findFiles([constants_1.MavenWrapperPropertiesPath]);
-            if (files.length > 0) {
-                if (utils.isMavenWrapperDirectory()) {
-                    const hash = yield getFileHash(files);
-                    const enableCrossOsArchive = utils.getInputAsBool(constants_1.Inputs.EnableCrossOsArchive);
-                    const cacheKeyPrefix = utils.getCacheKeyPrefix();
-                    try {
-                        console.log("Saving maven wrapper..");
-                        const result = yield cache.saveCache([constants_1.MavenWrapperPath], cacheKeyPrefix + hash, {
-                            uploadChunkSize: utils.getInputAsInt(constants_1.Inputs.UploadChunkSize)
-                        }, enableCrossOsArchive);
-                        console.log("Saved maven wrapper.");
-                        return result;
-                    }
-                    catch (err) {
-                        const error = err;
-                        if (error.name === cache.ValidationError.name) {
-                            throw error;
-                        }
-                        else if (error.name === cache.ReserveCacheError.name) {
-                            core.info(error.message);
-                        }
-                        else {
-                            utils.logWarning(error.message);
-                        }
-                        console.log("Unable to save maven wrapper.");
-                    }
+        const key = loadWrapperCacheKey();
+        if (key) {
+            if (utils.isMavenWrapperDirectory()) {
+                const enableCrossOsArchive = utils.getInputAsBool(constants_1.Inputs.EnableCrossOsArchive);
+                try {
+                    console.log("Saving maven wrapper..");
+                    const result = yield cache.saveCache([constants_1.MavenWrapperPath], key, {
+                        uploadChunkSize: utils.getInputAsInt(constants_1.Inputs.UploadChunkSize)
+                    }, enableCrossOsArchive);
+                    console.log("Saved maven wrapper.");
+                    return result;
                 }
-                else {
-                    console.log("Not saving wrapper, directory " +
-                        constants_1.MavenWrapperPath +
-                        " does not exist.");
+                catch (err) {
+                    const error = err;
+                    if (error.name === cache.ValidationError.name) {
+                        throw error;
+                    }
+                    else if (error.name === cache.ReserveCacheError.name) {
+                        core.info(error.message);
+                    }
+                    else {
+                        utils.logWarning(error.message);
+                    }
+                    console.log("Unable to save maven wrapper.");
                 }
             }
             else {
-                console.log("Not saving wrapper, no files found for " +
-                    constants_1.MavenWrapperPropertiesPath +
-                    ".");
+                console.log("Not saving wrapper, directory " +
+                    constants_1.MavenWrapperPath +
+                    " does not exist.");
             }
         }
         else {
-            console.log("Not saving wrapper for state " + wrapperState + ".");
+            console.log("Not saving wrapper");
         }
         return undefined;
     });
@@ -83026,27 +83016,43 @@ function restoreWrapperCache() {
             const hash = yield getFileHash(files);
             const enableCrossOsArchive = utils.getInputAsBool(constants_1.Inputs.EnableCrossOsArchive);
             const cacheKeyPrefix = utils.getCacheKeyPrefix();
+            const key = cacheKeyPrefix + hash;
             console.log("Restoring maven wrapper..");
-            const cacheKey = yield cache.restoreCache([constants_1.MavenWrapperPath], cacheKeyPrefix + hash, [], { lookupOnly: false }, enableCrossOsArchive);
+            const cacheKey = yield cache.restoreCache([constants_1.MavenWrapperPath], key, [], { lookupOnly: false }, enableCrossOsArchive);
             if (cacheKey) {
                 console.log("Restored maven wrapper.");
-                core.saveState(constants_1.State.Wrapper, "restored");
                 return cacheKey;
             }
             console.log("Unable to restore maven wrapper, cache miss.");
             // save wrapper once build completes
-            core.saveState(constants_1.State.Wrapper, "pending");
+            saveWrapperCacheKey(key);
         }
         else {
             console.log("Not restoring wrapper, no files fount for " +
                 constants_1.MavenWrapperPropertiesPath +
                 ".");
-            core.saveState(constants_1.State.Wrapper, "disabled");
         }
         return undefined;
     });
 }
 exports.restoreWrapperCache = restoreWrapperCache;
+const loadWrapperCacheKey = function () {
+    const absolutePath = utils.toAbsolutePath(constants_1.RestoreWrapperKeyPath);
+    if (fs.existsSync(absolutePath)) {
+        //file exists
+        const key = fs.readFileSync(absolutePath, {
+            encoding: "utf8",
+            flag: "r"
+        });
+        return key;
+    }
+    return undefined;
+};
+const saveWrapperCacheKey = function (value) {
+    utils.ensureMavenDirectoryExists();
+    console.log("If build is successful, save wrapper to key " + value);
+    fs.writeFileSync(utils.toAbsolutePath(constants_1.RestoreWrapperKeyPath), value);
+};
 /*
 Overall plan:
 
@@ -83273,9 +83279,6 @@ function run() {
                     catch (err) {
                         console.log("Problem restoring wrapper cache", err);
                     }
-                }
-                else {
-                    core.saveState(constants_1.State.Wrapper, "disabled");
                 }
             }
             else if (step === "save") {
