@@ -82821,7 +82821,6 @@ function run() {
         // however was the cache already saved
         const step = core.getState(constants_1.State.Step);
         const stepInput = core.getInput(constants_1.Inputs.Step, { required: true });
-        console.log("SAVE with state " + step + " and input " + stepInput);
         if (step === "restore") {
             const hash = core.getState(constants_1.State.FailureHash);
             if (hash.length > 0) {

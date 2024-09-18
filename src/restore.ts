@@ -137,8 +137,6 @@ async function run(): Promise<void> {
         const step = core.getInput(Inputs.Step, { required: true });
         const stepState = core.getState(State.Step);
 
-        console.log("SAVE with state " + stepState + " and input " + step);
-
         core.saveState(State.Step, step);
 
         if (step === "restore") {

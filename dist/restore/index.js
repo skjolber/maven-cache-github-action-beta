@@ -82915,7 +82915,6 @@ function run() {
         try {
             const step = core.getInput(constants_1.Inputs.Step, { required: true });
             const stepState = core.getState(constants_1.State.Step);
-            console.log("SAVE with state " + stepState + " and input " + step);
             core.saveState(constants_1.State.Step, step);
             if (step === "restore") {
                 if (utils.isGhes()) {

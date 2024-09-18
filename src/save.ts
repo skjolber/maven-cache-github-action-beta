@@ -11,8 +11,6 @@ async function run(): Promise<void> {
     const step = core.getState(State.Step);
     const stepInput = core.getInput(Inputs.Step, { required: true });
 
-    console.log("SAVE with state " + step + " and input " + stepInput);
-
     if (step === "restore") {
         const hash = core.getState(State.FailureHash);
 
