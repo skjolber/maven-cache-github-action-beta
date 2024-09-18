@@ -83324,18 +83324,18 @@ function restoreWrapperCache() {
             const enableCrossOsArchive = utils.getInputAsBool(constants_1.Inputs.EnableCrossOsArchive);
             const cacheKeyPrefix = utils.getCacheKeyPrefix();
             const key = cacheKeyPrefix + "-wrapper-" + hash;
-            console.log("Restoring maven wrapper..");
+            console.log("Restoring Maven wrapper..");
             const cacheKey = yield cache.restoreCache([constants_1.MavenWrapperPath], key, [], { lookupOnly: false }, enableCrossOsArchive);
             if (cacheKey) {
-                console.log("Restored maven wrapper.");
+                console.log("Maven wrapper restored successfully");
                 return cacheKey;
             }
-            console.log("Unable to restore maven wrapper, cache miss.");
+            console.log("Unable to restore Maven wrapper, cache miss.");
             // save wrapper once build completes
             saveWrapperCacheKey(key);
         }
         else {
-            console.log("Not restoring wrapper, no files fount for " +
+            console.log("Not restoring Maven wrapper, no files fount for " +
                 constants_1.MavenWrapperPropertiesPath +
                 ".");
         }
@@ -83389,7 +83389,6 @@ function findFiles(matchPatterns) {
                             console.log(`Skip directory '${file}'.`);
                             continue;
                         }
-                        console.log(`Found ${file}`);
                         buildFiles.push(file);
                     }
                     finally {

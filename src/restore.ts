@@ -114,6 +114,26 @@ async function restoreCache(keys: Array<string>): Promise<string | undefined> {
     return undefined;
 }
 
+function printFriendlyKeyPathResult(gitFiles: Array<string>) {
+    if (gitFiles.length == 1) {
+        console.info("Found build file " + gitFiles[0]);
+    } else {
+        // 2 or more
+        const message = new Array<string>();
+        message.push("Found ");
+        message.push(gitFiles.length.toString());
+        message.push(" build files: ");
+        for (let i = 0; i < gitFiles.length - 2; i++) {
+            message.push(gitFiles[i]);
+            message.push(", ");
+        }
+        message.push(gitFiles[gitFiles.length - 2]);
+        message.push(" and ");
+        message.push(gitFiles[gitFiles.length - 1]);
+        console.info(message.join(""));
+    }
+}
+
 /*
 Overall plan:
 
@@ -183,9 +203,9 @@ async function run(): Promise<void> {
             for (const file of files) {
                 const fileInGitRepo = file.substring(prefix.length);
                 gitFiles.push(fileInGitRepo);
-
-                console.log("Build file " + fileInGitRepo);
             }
+
+            printFriendlyKeyPathResult(gitFiles);
 
             let logTarget = "HEAD";
             // check whether we are on a PR or
@@ -228,7 +248,6 @@ async function run(): Promise<void> {
             for (const hash of gitFilesHashOutput.standardOutAsStringArray()) {
                 hashes.push(hash);
             }
-            console.log("Found " + hashes.length + " hashes");
             // get the commit hash messages
             const commmitHashMessages = new Array<string>();
             if (detached) {
@@ -284,7 +303,7 @@ async function run(): Promise<void> {
                 }
 
                 console.log(
-                    `Will attempt for restore cache from ${hashes.length} commits`
+                    `Attempt to restore cache from build file changes in ${hashes.length} commits`
                 );
 
                 for (const hash of hashes) {

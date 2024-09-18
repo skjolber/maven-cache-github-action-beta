@@ -82892,6 +82892,26 @@ function restoreCache(keys) {
         return undefined;
     });
 }
+function printFriendlyKeyPathResult(gitFiles) {
+    if (gitFiles.length == 1) {
+        console.info("Found build file " + gitFiles[0]);
+    }
+    else {
+        // 2 or more
+        const message = new Array();
+        message.push("Found ");
+        message.push(gitFiles.length.toString());
+        message.push(" build files: ");
+        for (let i = 0; i < gitFiles.length - 2; i++) {
+            message.push(gitFiles[i]);
+            message.push(", ");
+        }
+        message.push(gitFiles[gitFiles.length - 2]);
+        message.push(" and ");
+        message.push(gitFiles[gitFiles.length - 1]);
+        console.info(message.join(""));
+    }
+}
 /*
 Overall plan:
 
@@ -82945,8 +82965,8 @@ function run() {
                 for (const file of files) {
                     const fileInGitRepo = file.substring(prefix.length);
                     gitFiles.push(fileInGitRepo);
-                    console.log("Build file " + fileInGitRepo);
                 }
+                printFriendlyKeyPathResult(gitFiles);
                 let logTarget = "HEAD";
                 // check whether we are on a PR or
                 const gitRevParse = yield runGitCommand([
@@ -82980,7 +83000,6 @@ function run() {
                 for (const hash of gitFilesHashOutput.standardOutAsStringArray()) {
                     hashes.push(hash);
                 }
-                console.log("Found " + hashes.length + " hashes");
                 // get the commit hash messages
                 const commmitHashMessages = new Array();
                 if (detached) {
@@ -83024,7 +83043,7 @@ function run() {
                         const str = commmitHashMessages[commitIndex];
                         hashes.push(str.substring(0, str.indexOf(" ")));
                     }
-                    console.log(`Will attempt for restore cache from ${hashes.length} commits`);
+                    console.log(`Attempt to restore cache from build file changes in ${hashes.length} commits`);
                     for (const hash of hashes) {
                         restoreKeys.push(`${parameterCacheKeyPrefix}-${hash}-success`);
                         restoreKeys.push(`${parameterCacheKeyPrefix}-${hash}-failure`);
@@ -83636,18 +83655,18 @@ function restoreWrapperCache() {
             const enableCrossOsArchive = utils.getInputAsBool(constants_1.Inputs.EnableCrossOsArchive);
             const cacheKeyPrefix = utils.getCacheKeyPrefix();
             const key = cacheKeyPrefix + "-wrapper-" + hash;
-            console.log("Restoring maven wrapper..");
+            console.log("Restoring Maven wrapper..");
             const cacheKey = yield cache.restoreCache([constants_1.MavenWrapperPath], key, [], { lookupOnly: false }, enableCrossOsArchive);
             if (cacheKey) {
-                console.log("Restored maven wrapper.");
+                console.log("Maven wrapper restored successfully");
                 return cacheKey;
             }
-            console.log("Unable to restore maven wrapper, cache miss.");
+            console.log("Unable to restore Maven wrapper, cache miss.");
             // save wrapper once build completes
             saveWrapperCacheKey(key);
         }
         else {
-            console.log("Not restoring wrapper, no files fount for " +
+            console.log("Not restoring Maven wrapper, no files fount for " +
                 constants_1.MavenWrapperPropertiesPath +
                 ".");
         }
@@ -83701,7 +83720,6 @@ function findFiles(matchPatterns) {
                             console.log(`Skip directory '${file}'.`);
                             continue;
                         }
-                        console.log(`Found ${file}`);
                         buildFiles.push(file);
                     }
                     finally {

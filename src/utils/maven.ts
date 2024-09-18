@@ -238,7 +238,7 @@ export async function restoreWrapperCache() {
 
       const key = cacheKeyPrefix + "-wrapper-" + hash;
 
-      console.log("Restoring maven wrapper..");
+      console.log("Restoring Maven wrapper..");
       const cacheKey = await cache.restoreCache(
           [MavenWrapperPath],
           key,
@@ -248,17 +248,17 @@ export async function restoreWrapperCache() {
       );
 
       if (cacheKey) {
-          console.log("Restored maven wrapper.");
+          console.log("Maven wrapper restored successfully");
 
           return cacheKey;
       }
-      console.log("Unable to restore maven wrapper, cache miss.");
+      console.log("Unable to restore Maven wrapper, cache miss.");
 
       // save wrapper once build completes
       saveWrapperCacheKey(key);
   } else {
       console.log(
-          "Not restoring wrapper, no files fount for " +
+          "Not restoring Maven wrapper, no files fount for " +
               MavenWrapperPropertiesPath +
               "."
       );
@@ -312,7 +312,6 @@ export async function findFiles(matchPatterns: Array<string>): Promise<Array<str
               console.log(`Skip directory '${file}'.`);
               continue;
           }
-          console.log(`Found ${file}`);
 
           buildFiles.push(file);
       }
