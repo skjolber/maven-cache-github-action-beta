@@ -236,7 +236,7 @@ export async function restoreWrapperCache() {
 
       const cacheKeyPrefix = utils.getCacheKeyPrefix();
 
-      const key = cacheKeyPrefix + "wrapper-" + hash;
+      const key = cacheKeyPrefix + "-wrapper-" + hash;
 
       console.log("Restoring maven wrapper..");
       const cacheKey = await cache.restoreCache(

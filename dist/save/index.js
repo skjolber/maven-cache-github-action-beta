@@ -83015,11 +83015,7 @@ function getKeyPaths() {
 }
 exports.getKeyPaths = getKeyPaths;
 function getCacheKeyPrefix() {
-    let result = getOptionalInputAsString(constants_1.Inputs.CacheKeyPrefix, 'maven-cache-github-action');
-    if (result.endsWith("-")) {
-        return result;
-    }
-    return result + '-';
+    return getOptionalInputAsString(constants_1.Inputs.CacheKeyPrefix, 'maven-cache-github-action');
 }
 exports.getCacheKeyPrefix = getCacheKeyPrefix;
 
@@ -83327,7 +83323,7 @@ function restoreWrapperCache() {
             const hash = yield getFileHash(files);
             const enableCrossOsArchive = utils.getInputAsBool(constants_1.Inputs.EnableCrossOsArchive);
             const cacheKeyPrefix = utils.getCacheKeyPrefix();
-            const key = cacheKeyPrefix + "wrapper-" + hash;
+            const key = cacheKeyPrefix + "-wrapper-" + hash;
             console.log("Restoring maven wrapper..");
             const cacheKey = yield cache.restoreCache([constants_1.MavenWrapperPath], key, [], { lookupOnly: false }, enableCrossOsArchive);
             if (cacheKey) {
