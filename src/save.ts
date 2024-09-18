@@ -2,7 +2,6 @@ import * as cache from "@actions/cache";
 import * as core from "@actions/core";
 
 import { Inputs, State } from "./constants";
-import { saveWrapperCache } from "./restore";
 import * as utils from "./utils/actionUtils";
 import * as maven from "./utils/maven";
 
@@ -12,7 +11,7 @@ async function run(): Promise<void> {
     const step = core.getState(State.Step);
     const stepInput = core.getInput(Inputs.Step, { required: true });
 
-    console.log("SAVE with state " + step + " and input " + stepInput)
+    console.log("SAVE with state " + step + " and input " + stepInput);
 
     if (step === "restore") {
         const hash = core.getState(State.FailureHash);
@@ -61,7 +60,7 @@ async function run(): Promise<void> {
         }
 
         try {
-            await saveWrapperCache();
+            await maven.saveWrapperCache();
         } catch (err: unknown) {
             console.log("Problem saving wrapper cache", err);
         }

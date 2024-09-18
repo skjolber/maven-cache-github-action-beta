@@ -1,23 +1,16 @@
 import * as cache from "@actions/cache";
 import * as core from "@actions/core";
 import * as exec from "@actions/exec";
-import * as glob from "@actions/glob";
-import * as crypto from "crypto";
 import * as fs from "fs";
 import * as path from "path";
-import * as stream from "stream";
-import * as util from "util";
 
 import {
     DefaultGitHistoryDepth,
     Events,
     Inputs,
-    MavenWrapperPath,
-    MavenWrapperPropertiesPath,
     MaxCacheKeys,
     Restore,
     RestoreKeyPath,
-    RestoreWrapperKeyPath,
     State
 } from "./constants";
 import * as utils from "./utils/actionUtils";
@@ -91,41 +84,6 @@ async function runGitCommand(parameters: Array<string>): Promise<GitOutput> {
     return new GitOutput(standardOut, errorOut);
 }
 
-async function findFiles(matchPatterns: Array<string>): Promise<Array<string>> {
-    const buildFiles = new Array<string>();
-
-    let followSymbolicLinks = false;
-    if (process.env.followSymbolicLinks === "true") {
-        console.log("Follow symbolic links");
-        followSymbolicLinks = true;
-    }
-
-    const githubWorkspace = process.cwd();
-    const prefix = `${githubWorkspace}${path.sep}`;
-
-    for (const matchPattern of matchPatterns) {
-        const globber = await glob.create(matchPattern, {
-            followSymbolicLinks: followSymbolicLinks
-        });
-        for await (const file of globber.globGenerator()) {
-            if (!file.startsWith(prefix)) {
-                console.log(
-                    `Ignore '${file}' since it is not under GITHUB_WORKSPACE.`
-                );
-                continue;
-            }
-            if (fs.statSync(file).isDirectory()) {
-                console.log(`Skip directory '${file}'.`);
-                continue;
-            }
-            console.log(`Found ${file}`);
-
-            buildFiles.push(file);
-        }
-    }
-    return buildFiles;
-}
-
 async function restoreCache(keys: Array<string>): Promise<string | undefined> {
     for (let offset = 0; offset < keys.length; offset += MaxCacheKeys) {
         const limit = Math.min(offset + MaxCacheKeys, keys.length);
@@ -156,129 +114,6 @@ async function restoreCache(keys: Array<string>): Promise<string | undefined> {
     return undefined;
 }
 
-async function getFileHash(files: Array<string>) {
-    const result = crypto.createHash("sha256");
-    for (const file of files) {
-        const hash = crypto.createHash("sha256");
-        const pipeline = util.promisify(stream.pipeline);
-        await pipeline(fs.createReadStream(file), hash);
-        result.write(hash.digest());
-    }
-    result.end();
-
-    return result.digest("hex");
-}
-
-export async function saveWrapperCache() {
-    // simple file-hash based wrapper cache
-
-    const key = loadWrapperCacheKey();
-    if (key) {
-        if (utils.isMavenWrapperDirectory()) {
-            const enableCrossOsArchive = utils.getInputAsBool(
-                Inputs.EnableCrossOsArchive
-            );
-
-            try {
-                console.log("Saving maven wrapper..");
-                const result = await cache.saveCache(
-                    [MavenWrapperPath],
-                    key,
-                    {
-                        uploadChunkSize: utils.getInputAsInt(
-                            Inputs.UploadChunkSize
-                        )
-                    },
-                    enableCrossOsArchive
-                );
-                console.log("Saved maven wrapper.");
-                return result;
-            } catch (err) {
-                const error = err as Error;
-                if (error.name === cache.ValidationError.name) {
-                    throw error;
-                } else if (error.name === cache.ReserveCacheError.name) {
-                    core.info(error.message);
-                } else {
-                    utils.logWarning(error.message);
-                }
-                console.log("Unable to save maven wrapper.");
-            }
-        } else {
-            console.log(
-                "Not saving wrapper, directory " +
-                    MavenWrapperPath +
-                    " does not exist."
-            );
-        }
-    } else {
-        console.log("Not saving wrapper");
-    }
-    return undefined;
-}
-
-export async function restoreWrapperCache() {
-    // simple file-hash based wrapper cache
-
-    const files = await findFiles([MavenWrapperPropertiesPath]);
-    if (files.length > 0) {
-        const hash = await getFileHash(files);
-
-        const enableCrossOsArchive = utils.getInputAsBool(
-            Inputs.EnableCrossOsArchive
-        );
-
-        const cacheKeyPrefix = utils.getCacheKeyPrefix();
-
-        const key = cacheKeyPrefix + "wrapper-" + hash;
-
-        console.log("Restoring maven wrapper..");
-        const cacheKey = await cache.restoreCache(
-            [MavenWrapperPath],
-            key,
-            [],
-            { lookupOnly: false },
-            enableCrossOsArchive
-        );
-
-        if (cacheKey) {
-            console.log("Restored maven wrapper.");
-
-            return cacheKey;
-        }
-        console.log("Unable to restore maven wrapper, cache miss.");
-
-        // save wrapper once build completes
-        saveWrapperCacheKey(key);
-    } else {
-        console.log(
-            "Not restoring wrapper, no files fount for " +
-                MavenWrapperPropertiesPath +
-                "."
-        );
-    }
-    return undefined;
-}
-
-const loadWrapperCacheKey = function () {
-    const absolutePath = utils.toAbsolutePath(RestoreWrapperKeyPath);
-    if (fs.existsSync(absolutePath)) {
-        //file exists
-        const key = fs.readFileSync(absolutePath, {
-            encoding: "utf8",
-            flag: "r"
-        });
-        return key;
-    }
-    return undefined;
-};
-
-const saveWrapperCacheKey = function (value: string) {
-    utils.ensureMavenDirectoryExists();
-    console.log("If build is successful, save wrapper to key " + value);
-    fs.writeFileSync(utils.toAbsolutePath(RestoreWrapperKeyPath), value);
-};
-
 /*
 Overall plan:
 
@@ -301,9 +136,9 @@ async function run(): Promise<void> {
     try {
         const step = core.getInput(Inputs.Step, { required: true });
         const stepState = core.getState(State.Step);
-    
-        console.log("SAVE with state " + step + " and input " + stepState)
-    
+
+        console.log("SAVE with state " + stepState + " and input " + step);
+
         core.saveState(State.Step, step);
 
         if (step === "restore") {
@@ -329,7 +164,7 @@ async function run(): Promise<void> {
 
             const keyPaths = utils.getKeyPaths();
 
-            const files = await findFiles(keyPaths);
+            const files = await maven.findFiles(keyPaths);
             if (files.length == 0) {
                 utils.logWarning(
                     "No key files found for expression " +
@@ -483,7 +318,7 @@ async function run(): Promise<void> {
                         "No git history found for build files, fall back to using file hash instead"
                     );
 
-                    const hashAsString = await getFileHash(files);
+                    const hashAsString = await maven.getFileHash(files);
 
                     restoreKeys.push(
                         `${parameterCacheKeyPrefix}-${hashAsString}-success`
@@ -605,7 +440,7 @@ async function run(): Promise<void> {
             const wrapper = utils.getInputAsBool(Inputs.Wrapper);
             if (wrapper) {
                 try {
-                    await restoreWrapperCache();
+                    await maven.restoreWrapperCache();
                 } catch (err: unknown) {
                     console.log("Problem restoring wrapper cache", err);
                 }
@@ -663,7 +498,7 @@ async function run(): Promise<void> {
             }
 
             try {
-                await saveWrapperCache();
+                await maven.saveWrapperCache();
             } catch (err: unknown) {
                 console.log("Problem saving wrapper cache", err);
             }
