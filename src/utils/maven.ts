@@ -99,6 +99,7 @@ export async function removeResolutionAttempts(
     }
 }
 
+// although this function does not clean up anything, we still need to save the cache since there might be new additions
 export async function performCleanup(paths: Array<string>): Promise<void> {
     const pomsInUse = new Set<string>();
 
@@ -137,24 +138,26 @@ export async function performCleanup(paths: Array<string>): Promise<void> {
             poms.delete(pom);
         }
 
-        console.log(
-            "Delete " +
-                poms.size +
-                " cached artifacts which are no longer in use."
-        );
+        if(poms.size > 0) {
+          console.log(
+              "Delete " +
+                  poms.size +
+                  " cached artifacts which are no longer in use."
+          );
 
-        for (const pom of poms) {
-            const parent = path.dirname(pom);
-            console.log("Delete directory " + parent);
-            if (!fs.existsSync(parent)) {
-                console.log("Parent does not exist");
-            }
+          for (const pom of poms) {
+              const parent = path.dirname(pom);
+              console.log("Delete directory " + parent);
+              if (!fs.existsSync(parent)) {
+                  console.log("Parent unexpectedly does not exist");
+              }
 
-            fs.rmSync(parent, { recursive: true });
+              fs.rmSync(parent, { recursive: true });
 
-            if (fs.existsSync(parent)) {
-                console.log("Parent exists");
-            }
+              if (fs.existsSync(parent)) {
+                  console.log("Parent unexpectedly still exists");
+              }
+          }
         }
     } else {
         console.log("Cache cleanup not necessary.");
@@ -186,7 +189,7 @@ export async function saveWrapperCache() {
           );
 
           try {
-              console.log("Saving maven wrapper..");
+              console.log("Saving Maven wrapper..");
               const result = await cache.saveCache(
                   [MavenWrapperPath],
                   key,
@@ -197,7 +200,7 @@ export async function saveWrapperCache() {
                   },
                   enableCrossOsArchive
               );
-              console.log("Saved maven wrapper.");
+              console.log("Saved Maven wrapper.");
               return result;
           } catch (err) {
               const error = err as Error;
@@ -212,13 +215,13 @@ export async function saveWrapperCache() {
           }
       } else {
           console.log(
-              "Not saving wrapper, directory " +
+              "Not saving Maven wrapper, directory " +
                   MavenWrapperPath +
                   " does not exist."
           );
       }
   } else {
-      console.log("Not saving wrapper");
+      console.log("Not saving Maven wrapper");
   }
   return undefined;
 }

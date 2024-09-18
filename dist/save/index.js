@@ -83210,6 +83210,7 @@ function removeResolutionAttempts(paths) {
     });
 }
 exports.removeResolutionAttempts = removeResolutionAttempts;
+// although this function does not clean up anything, we still need to save the cache since there might be new additions
 function performCleanup(paths) {
     return __awaiter(this, void 0, void 0, function* () {
         const pomsInUse = new Set();
@@ -83238,18 +83239,20 @@ function performCleanup(paths) {
             for (const pom of pomsInUse) {
                 poms.delete(pom);
             }
-            console.log("Delete " +
-                poms.size +
-                " cached artifacts which are no longer in use.");
-            for (const pom of poms) {
-                const parent = path.dirname(pom);
-                console.log("Delete directory " + parent);
-                if (!fs.existsSync(parent)) {
-                    console.log("Parent does not exist");
-                }
-                fs.rmSync(parent, { recursive: true });
-                if (fs.existsSync(parent)) {
-                    console.log("Parent exists");
+            if (poms.size > 0) {
+                console.log("Delete " +
+                    poms.size +
+                    " cached artifacts which are no longer in use.");
+                for (const pom of poms) {
+                    const parent = path.dirname(pom);
+                    console.log("Delete directory " + parent);
+                    if (!fs.existsSync(parent)) {
+                        console.log("Parent unexpectedly does not exist");
+                    }
+                    fs.rmSync(parent, { recursive: true });
+                    if (fs.existsSync(parent)) {
+                        console.log("Parent unexpectedly still exists");
+                    }
                 }
             }
         }
@@ -83281,11 +83284,11 @@ function saveWrapperCache() {
             if (utils.isMavenWrapperDirectory()) {
                 const enableCrossOsArchive = utils.getInputAsBool(constants_1.Inputs.EnableCrossOsArchive);
                 try {
-                    console.log("Saving maven wrapper..");
+                    console.log("Saving Maven wrapper..");
                     const result = yield cache.saveCache([constants_1.MavenWrapperPath], key, {
                         uploadChunkSize: utils.getInputAsInt(constants_1.Inputs.UploadChunkSize)
                     }, enableCrossOsArchive);
-                    console.log("Saved maven wrapper.");
+                    console.log("Saved Maven wrapper.");
                     return result;
                 }
                 catch (err) {
@@ -83303,13 +83306,13 @@ function saveWrapperCache() {
                 }
             }
             else {
-                console.log("Not saving wrapper, directory " +
+                console.log("Not saving Maven wrapper, directory " +
                     constants_1.MavenWrapperPath +
                     " does not exist.");
             }
         }
         else {
-            console.log("Not saving wrapper");
+            console.log("Not saving Maven wrapper");
         }
         return undefined;
     });
