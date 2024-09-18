@@ -25,7 +25,7 @@ inputs:
     required: false
   cache-key-prefix:
     description: 'Prefix for cache keys'
-    default: 'maven-cache-github-action-'
+    default: 'maven-cache-github-action'
     required: false
 outputs:
   cache-restore:

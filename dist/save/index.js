@@ -82820,7 +82820,6 @@ function run() {
         // so job failed
         // however was the cache already saved
         const step = core.getState(constants_1.State.Step);
-        const stepInput = core.getInput(constants_1.Inputs.Step, { required: true });
         if (step === "restore") {
             const hash = core.getState(constants_1.State.FailureHash);
             if (hash.length > 0) {
@@ -83016,8 +83015,8 @@ function getKeyPaths() {
 }
 exports.getKeyPaths = getKeyPaths;
 function getCacheKeyPrefix() {
-    let result = getOptionalInputAsString(constants_1.Inputs.CacheKeyPrefix, 'maven-cache-github-action-');
-    if (result.endsWith('-')) {
+    let result = getOptionalInputAsString(constants_1.Inputs.CacheKeyPrefix, 'maven-cache-github-action');
+    if (result.endsWith("-")) {
         return result;
     }
     return result + '-';

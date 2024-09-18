@@ -148,8 +148,8 @@ export function getKeyPaths() {
 }
 
 export function getCacheKeyPrefix() {
-    let result = getOptionalInputAsString(Inputs.CacheKeyPrefix, 'maven-cache-github-action-');
-    if(result.endsWith('-')) {
+    let result = getOptionalInputAsString(Inputs.CacheKeyPrefix, 'maven-cache-github-action');
+    if(result.endsWith("-")) {
         return result
     }
     return result + '-'

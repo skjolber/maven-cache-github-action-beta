@@ -82914,7 +82914,6 @@ function run() {
     return __awaiter(this, void 0, void 0, function* () {
         try {
             const step = core.getInput(constants_1.Inputs.Step, { required: true });
-            const stepState = core.getState(constants_1.State.Step);
             core.saveState(constants_1.State.Step, step);
             if (step === "restore") {
                 if (utils.isGhes()) {
@@ -83328,8 +83327,8 @@ function getKeyPaths() {
 }
 exports.getKeyPaths = getKeyPaths;
 function getCacheKeyPrefix() {
-    let result = getOptionalInputAsString(constants_1.Inputs.CacheKeyPrefix, 'maven-cache-github-action-');
-    if (result.endsWith('-')) {
+    let result = getOptionalInputAsString(constants_1.Inputs.CacheKeyPrefix, 'maven-cache-github-action');
+    if (result.endsWith("-")) {
         return result;
     }
     return result + '-';

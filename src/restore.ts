@@ -135,7 +135,6 @@ Overall plan:
 async function run(): Promise<void> {
     try {
         const step = core.getInput(Inputs.Step, { required: true });
-        const stepState = core.getState(State.Step);
 
         core.saveState(State.Step, step);
 
